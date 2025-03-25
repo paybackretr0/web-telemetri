@@ -24,6 +24,8 @@ return new class extends Migration
             $table->string('nim')->nullable();
             $table->string('jurusan')->nullable();
             $table->string('angkatan')->nullable();
+            $table->string('profile_picture')->nullable();
+            $table->string('phone_number', 20)->nullable();
             $table->rememberToken();
             $table->timestamps();
         });

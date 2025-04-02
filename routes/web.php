@@ -1,29 +1,37 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\GoogleController;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\Pengurus\PengurusDashboardController;
 
-// routes/web.php
-Route::get('/login', function () {
-    return view('auth.login');
-})->name('login');
+/*
+|--------------------------------------------------------------------------
+| Web Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register web routes for your application. These
+| routes are loaded by the RouteServiceProvider within a group which
+| contains the "web" middleware group. Now create something great!
+|
+*/
 
+// Guest routes
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Authentication routes
+Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+// Google OAuth routes
 Route::get('/auth/google', [GoogleController::class, 'redirectToGoogle']);
 Route::get('/auth/google/callback', [GoogleController::class, 'handleGoogleCallback']);
 
-Route::get('/dashboard', function () {
-    return view('pengurus/dashboard');
-})->middleware('auth')->name('dashboard');
-
-Route::post('/logout', function (Request $request) {
-    Auth::logout();
-    $request->session()->invalidate();
-    $request->session()->regenerateToken();
-    return redirect('/');
-})->middleware('auth')->name('logout');
-
-Route::get('/', function () {
-    return view('welcome');
+// Protected routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', [PengurusDashboardController::class, 'index'])->name('dashboard');
+    
+    // Add more protected routes here
 });

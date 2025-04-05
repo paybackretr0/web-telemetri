@@ -17,7 +17,7 @@ return new class extends Migration
             $table->foreignId('activity_id')->constrained()->cascadeOnDelete();
             $table->text('reason');
             $table->string('attachment')->nullable();
-            $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->enum('status', ['pending', 'approved', 'rejected', 'cancelled'])->default('pending');
             $table->foreignId('approved_by')->nullable()->constrained('users')->nullOnDelete();
             $table->dateTime('approved_at')->nullable();
             $table->timestamps();

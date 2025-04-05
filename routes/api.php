@@ -7,8 +7,9 @@ use App\Http\Controllers\API\ProkerController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\RapatController;
 use App\Http\Controllers\API\KalenderController;
+use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\AuthController;
-use App\Http\Controllers\API\GoogleController;
+use App\Http\Controllers\API\PermissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,7 +27,7 @@ Route::get('test', function() {
 });
 
 Route::post('/auth/google-flutter', [AuthController::class, 'googleLogin']);
-Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
 Route::post('/refresh-google-token', [AuthController::class, 'refreshGoogleToken'])->middleware('auth:sanctum');
 
@@ -48,12 +49,15 @@ Route::middleware('auth:sanctum')->group(function () {
     //     Route::post('/kegiatan/scan', [AbsensiController::class, 'scanKegiatan']);
     //     Route::get('/kegiatan/history', [AbsensiController::class, 'getKegiatanHistory']);
         
-    //     // Izin
-    //     Route::post('/izin', [AbsensiController::class, 'createIzin']);
-    //     Route::get('/izin', [AbsensiController::class, 'getIzinList']);
-    //     Route::get('/izin/{id}', [AbsensiController::class, 'getIzinDetail']);
-    //     Route::put('/izin/{id}', [AbsensiController::class, 'updateIzin']);
-    //     Route::delete('/izin/{id}', [AbsensiController::class, 'deleteIzin']);
+    // Aktivitas
+    Route::get('activities/upcoming', [ActivityController::class, 'getUpcomingActivities']);
+    Route::get('activities/attendance/{id}', [ActivityController::class, 'getActivityForAttendance']);
+    Route::get('activity-types', [ActivityController::class, 'getAttendanceTypes']);
+    Route::apiResource('activities', ActivityController::class);
+    
+    // Izin
+    Route::get('permissions/my', [PermissionController::class, 'myPermissions']);
+    Route::apiResource('permissions', PermissionController::class);
         
     //     // Delegasi
     //     Route::post('/delegasi', [AbsensiController::class, 'createDelegasi']);

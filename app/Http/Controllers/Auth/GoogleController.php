@@ -40,21 +40,12 @@ class GoogleController extends Controller
                     'google_refresh_token' => $googleUser->refreshToken,
                 ]);
                 Auth::login($existingUser);
+                
+                return redirect()->route('dashboard');
             } else {
-                $newUser = User::create([
-                    'name' => $googleUser->name,
-                    'email' => $googleUser->email,
-                    'google_id' => $googleUser->id,
-                    'google_token' => $googleUser->token,
-                    'google_refresh_token' => $googleUser->refreshToken,
-                    'password' => bcrypt(Str::random(16)),
-                    'role' => 'pengurus'
-                ]);
-            
-                Auth::login($newUser);
+                // User not found in database, redirect back with error
+                return redirect('/login')->with('error', 'Your email is not registered in our system. Please contact the administrator.');
             }
-        
-            return redirect()->route('dashboard');
         
         } catch (Exception $e) {
             return redirect('/login')->with('error', 'Something went wrong with Google login: ' . $e->getMessage());

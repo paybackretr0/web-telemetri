@@ -91,9 +91,9 @@ class Activity extends Model
     /**
      * Get the QR code for the activity.
      */
-    public function qrCodes()
+    public function qrCode()
     {
-        return $this->hasMany(QrCode::class);
+        return $this->hasOne(QrCode::class);
     }
 
     /**

@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -39,5 +38,13 @@ class DutySchedule extends Model
         return $this->belongsToMany(User::class, 'user_duty_schedules')
                     ->withPivot('start_date', 'end_date')
                     ->withTimestamps();
+    }
+    
+    /**
+     * Get the delegations for this duty schedule.
+     */
+    public function delegations()
+    {
+        return $this->hasMany(Delegation::class);
     }
 }

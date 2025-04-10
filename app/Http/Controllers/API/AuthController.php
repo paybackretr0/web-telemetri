@@ -48,8 +48,8 @@ class AuthController extends Controller
                 
                 if (!$existingUser) {
                     return response()->json([
-                        'message' => 'Unauthorized',
-                        'error' => 'Email not registered in the system'
+                        'message' => 'Email Anda tidak terdaftar di sistem',
+                        'error' => 'Email tidak terdaftar di sistem'
                     ], 403);
                 }
                 
@@ -74,7 +74,7 @@ class AuthController extends Controller
             }
         } catch (Exception $e) {
             return response()->json([
-                'message' => 'Authentication failed',
+                'message' => 'Login Gagal',
                 'error' => $e->getMessage()
             ], 401);
         }
@@ -89,7 +89,7 @@ class AuthController extends Controller
     {
         $request->user()->currentAccessToken()->delete();
         return response()->json([
-            'message' => 'Successfully logged out'
+            'message' => 'Berhasil Keluar'
         ]);
     }
     /**

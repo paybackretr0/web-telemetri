@@ -22,3 +22,7 @@ yarn-error.log
 /.vscode
 /.zed
 telemetri.sql
+
+**/caddy
+frankenphp
+frankenphp-worker.php

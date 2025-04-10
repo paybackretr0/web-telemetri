@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -17,7 +16,8 @@ class Delegation extends Model
     protected $fillable = [
         'requester_id',
         'delegate_id',
-        'activity_id',
+        'duty_schedule_id',
+        'delegation_date',
         'reason',
         'status',
         'approved_by',
@@ -30,6 +30,7 @@ class Delegation extends Model
      * @var array<string, string>
      */
     protected $casts = [
+        'delegation_date' => 'date',
         'approved_at' => 'datetime',
     ];
 
@@ -50,11 +51,11 @@ class Delegation extends Model
     }
 
     /**
-     * Get the activity that owns the delegation.
+     * Get the duty schedule that is being delegated.
      */
-    public function activity()
+    public function dutySchedule()
     {
-        return $this->belongsTo(Activity::class);
+        return $this->belongsTo(DutySchedule::class);
     }
 
     /**

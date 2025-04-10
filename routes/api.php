@@ -9,7 +9,9 @@ use App\Http\Controllers\API\RapatController;
 use App\Http\Controllers\API\KalenderController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\DelegationController;
 use App\Http\Controllers\API\PermissionController;
+use App\Http\Controllers\API\DutyScheduleController;
 
 /*
 |--------------------------------------------------------------------------
@@ -59,23 +61,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('permissions/my', [PermissionController::class, 'myPermissions']);
     Route::apiResource('permissions', PermissionController::class);
         
-    //     // Delegasi
-    //     Route::post('/delegasi', [AbsensiController::class, 'createDelegasi']);
-    //     Route::get('/delegasi', [AbsensiController::class, 'getDelegasiList']);
-    //     Route::get('/delegasi/{id}', [AbsensiController::class, 'getDelegasiDetail']);
-    //     Route::put('/delegasi/{id}', [AbsensiController::class, 'updateDelegasi']);
-    //     Route::delete('/delegasi/{id}', [AbsensiController::class, 'deleteDelegasi']);
-    // });
+    // Delegasi
+    Route::get('delegations/my', [DelegationController::class, 'myDelegations']);
+    Route::apiResource('delegations', DelegationController::class);
+    Route::patch('delegations/process/{id}', [DelegationController::class, 'processDelegations']);
     
-    // // Proker (Program Kerja) routes
-    // Route::prefix('proker')->group(function () {
-    //     Route::get('/', [ProkerController::class, 'index']);
-    //     Route::get('/{id}', [ProkerController::class, 'show']);
-    //     Route::post('/', [ProkerController::class, 'store'])->middleware('role:admin');
-    //     Route::put('/{id}', [ProkerController::class, 'update'])->middleware('role:admin');
-    //     Route::delete('/{id}', [ProkerController::class, 'destroy'])->middleware('role:admin');
-    //     Route::get('/{id}/activities', [ProkerController::class, 'getActivities']);
-    // });
+    // Duty Schedules
+    Route::get('duty-schedules/my', [DutyScheduleController::class, 'myDutySchedules']);
+    Route::get('duty-schedules/next', [DutyScheduleController::class, 'getNextDuty']);
+    Route::get('duty-schedules/delegable', [DutyScheduleController::class, 'getDelegableDutySchedules']);
+    Route::get('duty-schedules/potential-delegates', [DutyScheduleController::class, 'getPotentialDelegates']);
     
     // // Rapat routes
     // Route::prefix('rapat')->group(function () {

@@ -305,7 +305,7 @@ class PermissionController extends Controller
     
         return response()->json([
             'success' => true,
-            'message' => 'Permission cancelled successfully',
+            'message' => 'Berhasil Membatalkan Permohonan Izin',
             'data' => $permission->load(['user', 'activity', 'approver']),
         ]);
     }

@@ -86,11 +86,19 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the delegations where the user is a delegate.
+     * Get the delegations assigned to the user.
      */
-    public function delegatedTasks()
+    public function assignedDelegations()
     {
         return $this->hasMany(Delegation::class, 'delegate_id');
+    }
+
+    /**
+     * Get the delegations approved by the user.
+     */
+    public function approvedDelegations()
+    {
+        return $this->hasMany(Delegation::class, 'approved_by');
     }
 
     /**

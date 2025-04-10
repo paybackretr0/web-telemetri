@@ -1,0 +1,14 @@
+services:
+    telemetri-frankenphp:
+        build:
+            context: .
+        entrypoint: php artisan octane:frankenphp
+        container_name: telemetri-frankenphp
+        ports:
+            - "8080:8000"
+        networks:
+            - laravel_network
+
+networks:
+    laravel_network:
+        driver: bridge

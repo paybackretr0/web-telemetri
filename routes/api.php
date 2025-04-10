@@ -7,6 +7,7 @@ use App\Http\Controllers\API\ProkerController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\RapatController;
 use App\Http\Controllers\API\KalenderController;
+use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\AuthController;
 use App\Http\Controllers\API\DelegationController;
@@ -72,15 +73,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('duty-schedules/delegable', [DutyScheduleController::class, 'getDelegableDutySchedules']);
     Route::get('duty-schedules/potential-delegates', [DutyScheduleController::class, 'getPotentialDelegates']);
     
-    // // Rapat routes
-    // Route::prefix('rapat')->group(function () {
-    //     Route::get('/', [RapatController::class, 'index']);
-    //     Route::get('/{id}', [RapatController::class, 'show']);
-    //     Route::post('/', [RapatController::class, 'store'])->middleware('role:admin');
-    //     Route::put('/{id}', [RapatController::class, 'update'])->middleware('role:admin');
-    //     Route::delete('/{id}', [RapatController::class, 'destroy'])->middleware('role:admin');
-    // });
-    
+    // Notifications
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount']);
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
+    Route::delete('notifications', [NotificationController::class, 'destroyAll']);
+
+
     // // Kalender routes
     // Route::prefix('kalender')->group(function () {
     //     Route::get('/', [KalenderController::class, 'getEvents']);

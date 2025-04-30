@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -28,7 +29,10 @@ class User extends Authenticatable
         'google_refresh_token',
         'nim',
         'jurusan',
-        'angkatan',
+        'nomor_seri',
+        'jabatan',
+        'divisi',
+        'sub_divisi',
     ];
 
     /**
@@ -191,5 +195,13 @@ class User extends Authenticatable
     public function isAdmin()
     {
         return $this->role === 'admin';
+    }
+
+    public function getProfilePictureAttribute($value)
+    {
+        if (!$value) return null;
+        return Storage::disk('public')->exists($value)
+            ? url(Storage::url($value))
+            : null;
     }
 }

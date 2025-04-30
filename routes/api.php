@@ -7,6 +7,7 @@ use App\Http\Controllers\API\ProkerController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\RapatController;
 use App\Http\Controllers\API\KalenderController;
+use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\AuthController;
@@ -81,6 +82,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
     Route::delete('notifications', [NotificationController::class, 'destroyAll']);
 
+    // Profile
+    Route::get('/profile/my', [ProfileController::class, 'getProfile']);
+    Route::post('/profile/update', [ProfileController::class, 'updateProfile']);
 
     // // Kalender routes
     // Route::prefix('kalender')->group(function () {

@@ -16,14 +16,17 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('password')->nullable(); // Nullable karena login dengan Google
+            $table->string('password')->nullable();
             $table->string('google_id')->nullable();
             $table->text('google_token')->nullable();
             $table->text('google_refresh_token')->nullable();
             $table->enum('role', ['admin', 'pengurus', ])->default('pengurus');
             $table->string('nim')->nullable();
             $table->string('jurusan')->nullable();
-            $table->string('angkatan')->nullable();
+            $table->string('nomor_seri')->nullable();
+            $table->string('jabatan')->nullable();
+            $table->string('divisi')->nullable();
+            $table->string('sub_divisi')->nullable();
             $table->string('profile_picture')->nullable();
             $table->string('phone_number', 20)->nullable();
             $table->rememberToken();

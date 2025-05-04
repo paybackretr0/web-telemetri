@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Validator;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Str;
 use Exception;
+use Google_Client;
+
 class AuthController extends Controller
 {
     /**
@@ -19,7 +21,7 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_token' => 'required|string',
-            'access_token' => 'nullable|string', // Tambahkan validasi untuk access_token
+            'access_token' => 'nullable|string', 
         ]);
        
         if ($validator->fails()) {
@@ -27,23 +29,18 @@ class AuthController extends Controller
         }
        
         try {
-            // Get the Google user directly from token without stateless
             $idToken = $request->id_token;
-            $accessToken = $request->access_token ?? null; // Access token untuk Google Calendar
+            $accessToken = $request->access_token ?? null;
            
-            // For testing, you can decode the token to get user info directly
-            // This is a simplified approach - in production, you should verify with Google
             $tokenParts = explode(".", $idToken);
             if(count($tokenParts) >= 2) {
                 $payload = base64_decode(str_replace('_', '/', str_replace('-','+', $tokenParts[1])));
                 $userData = json_decode($payload, true);
                
-                // Check if we have required information
                 if(!isset($userData['email']) || !isset($userData['sub'])) {
                     throw new Exception('Invalid token data');
                 }
                 
-                // Check if the email exists in the database
                 $existingUser = User::where('email', $userData['email'])->first();
                 
                 if (!$existingUser) {
@@ -53,13 +50,31 @@ class AuthController extends Controller
                     ], 403);
                 }
                 
-                // Update user with Google credentials
+                $tokenData = [
+                    'access_token' => $accessToken,
+                    'token_type' => 'Bearer',
+                    'expires_in' => 3600, 
+                    'created' => time()
+                ];
+                
                 $existingUser->update([
                     'google_id' => $userData['sub'],
-                    'google_token' => $accessToken
+                    'google_token' => json_encode($tokenData)
+                ]);
+
+                $validator = Validator::make($request->all(), [
+                    'id_token' => 'required|string',
+                    'access_token' => 'nullable|string',
+                    'refresh_token' => 'nullable|string'
                 ]);
                 
-                // Create token
+                // Simpan refresh token jika ada
+                if ($request->has('refresh_token')) {
+                    $existingUser->update([
+                        'google_refresh_token' => $request->refresh_token
+                    ]);
+                }
+                
                 $token = $existingUser->createToken('auth_token')->plainTextToken;
                
                 return response()->json([
@@ -107,5 +122,50 @@ class AuthController extends Controller
             'access_token' => $token,
             'token_type' => 'Bearer',
         ]);
+    }
+
+    /**
+     * Refresh Google token
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function refreshGoogleToken(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (empty($user->google_refresh_token)) {
+                return response()->json([
+                    'message' => 'Tidak ada refresh token Google',
+                    'error' => 'Refresh token tidak tersedia'
+                ], 400);
+            }
+            
+            // Implementasi refresh token dengan Google API
+            $client = new Google_Client();
+            $client->setClientId(env('GOOGLE_CLIENT_ID'));
+            $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
+            
+            // Coba refresh token
+            $client->fetchAccessTokenWithRefreshToken($user->google_refresh_token);
+            $tokens = $client->getAccessToken();
+            
+            // Update token di database
+            $user->update([
+                'google_token' => json_encode($tokens)
+            ]);
+            
+            return response()->json([
+                'message' => 'Token Google berhasil diperbarui',
+                'has_calendar_access' => true
+            ]);
+            
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'Gagal memperbarui token Google',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }

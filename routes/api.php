@@ -3,14 +3,13 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AbsensiController;
-use App\Http\Controllers\API\ProkerController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\RapatController;
-use App\Http\Controllers\API\KalenderController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ActivityController;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\CalendarController;
 use App\Http\Controllers\API\DelegationController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\DutyScheduleController;
@@ -54,44 +53,55 @@ Route::middleware('auth:sanctum')->group(function () {
     //     Route::get('/kegiatan/history', [AbsensiController::class, 'getKegiatanHistory']);
         
     // Aktivitas
-    Route::get('activities/upcoming', [ActivityController::class, 'getUpcomingActivities']);
-    Route::get('activities/attendance/{id}', [ActivityController::class, 'getActivityForAttendance']);
-    Route::get('activity-types', [ActivityController::class, 'getAttendanceTypes']);
-    Route::apiResource('activities', ActivityController::class);
+    Route::prefix('activities')->group(function () {
+        Route::get('/upcoming', [ActivityController::class, 'getUpcomingActivities']);
+        Route::get('/attendance/{id}', [ActivityController::class, 'getActivityForAttendance']);
+        Route::get('/types', [ActivityController::class, 'getAttendanceTypes']);
+        Route::apiResource('/', ActivityController::class);
+    });
     
     // Izin
-    Route::get('permissions/my', [PermissionController::class, 'myPermissions']);
-    Route::apiResource('permissions', PermissionController::class);
+    Route::prefix('permissions')->group(function () {
+        Route::get('/my', [PermissionController::class, 'myPermissions']);
+        Route::apiResource('/', PermissionController::class);
+    });
         
     // Delegasi
-    Route::get('delegations/my', [DelegationController::class, 'myDelegations']);
-    Route::apiResource('delegations', DelegationController::class);
-    Route::patch('delegations/process/{id}', [DelegationController::class, 'processDelegations']);
+    Route::prefix('delegations')->group(function () {
+        Route::get('/my', [DelegationController::class, 'myDelegations']);
+        Route::apiResource('/', DelegationController::class);
+        Route::patch('/process/{id}', [DelegationController::class, 'processDelegations']);
+    });
     
-    // Duty Schedules
-    Route::get('duty-schedules/my', [DutyScheduleController::class, 'myDutySchedules']);
-    Route::get('duty-schedules/next', [DutyScheduleController::class, 'getNextDuty']);
-    Route::get('duty-schedules/delegable', [DutyScheduleController::class, 'getDelegableDutySchedules']);
-    Route::get('duty-schedules/potential-delegates', [DutyScheduleController::class, 'getPotentialDelegates']);
+    // Jadwal Piket
+    Route::prefix('duty-schedules')->group(function () {
+        Route::get('/my', [DutyScheduleController::class, 'myDutySchedules']);
+        Route::get('/next', [DutyScheduleController::class, 'getNextDuty']);
+        Route::get('/delegable', [DutyScheduleController::class, 'getDelegableDutySchedules']);
+        Route::get('/potential-delegates', [DutyScheduleController::class, 'getPotentialDelegates']);
+    });
     
-    // Notifications
-    Route::get('notifications', [NotificationController::class, 'index']);
-    Route::get('notifications/unread-count', [NotificationController::class, 'getUnreadCount']);
-    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
-    Route::patch('notifications/mark-all-read', [NotificationController::class, 'markAllAsRead']);
-    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
-    Route::delete('notifications', [NotificationController::class, 'destroyAll']);
+    // Notifikasi
+    Route::prefix('notifications')->group(function () {
+        Route::get('/', [NotificationController::class, 'index']);
+        Route::get('/unread-count', [NotificationController::class, 'getUnreadCount']);
+        Route::patch('/{id}/read', [NotificationController::class, 'markAsRead']);
+        Route::patch('/mark-all-read', [NotificationController::class, 'markAllAsRead']);
+        Route::delete('/{id}', [NotificationController::class, 'destroy']);
+        Route::delete('/', [NotificationController::class, 'destroyAll']);
+    });
 
-    // Profile
-    Route::get('/profile/my', [ProfileController::class, 'getProfile']);
-    Route::post('/profile/update', [ProfileController::class, 'updateProfile']);
+    // Profil
+    Route::prefix('profile')->group(function () {
+        Route::get('/my', [ProfileController::class, 'getProfile']);
+        Route::post('/update', [ProfileController::class, 'updateProfile']);
+    });
 
-    // // Kalender routes
-    // Route::prefix('kalender')->group(function () {
-    //     Route::get('/', [KalenderController::class, 'getEvents']);
-    //     Route::post('/sync', [KalenderController::class, 'syncWithGoogle']);
-    //     Route::post('/add-to-google', [KalenderController::class, 'addToGoogleCalendar']);
-    // });
+    // Kalender
+    Route::prefix('calendar')->group(function () {
+        Route::get('/', [CalendarController::class, 'getEvents']);
+        Route::post('/sync', [CalendarController::class, 'syncWithGoogle']);
+    });
 });
 
 // Admin routes

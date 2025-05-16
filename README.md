@@ -1,8 +1,4 @@
 # Neo Telemetri - Sistem Informasi Manajemen Absensi
-
-Berikut adalah README.md yang lebih modern dan informatif untuk proyek Neo Telemetri:
-
-````markdown:d:/Project/Multiplatform/web-telemetri/README.md
 <div align="center">
   <img src="/assets/images/NEO.png" alt="Neo Telemetri Logo" width="120"/>
   <h1>Neo Telemetri</h1>
@@ -100,5 +96,5 @@ Hak Cipta © 2024 Neo Telemetri. Dilindungi Undang-Undang.
 
 Untuk informasi lebih lanjut, silakan hubungi tim pengembang melalui:
 
--   Email: [email protected]
+-   Email: neotelemetri@gmail.com
 -   Website: www.neotelemetri.id

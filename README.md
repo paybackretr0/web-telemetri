@@ -1,6 +1,6 @@
 # Neo Telemetri - Sistem Informasi Manajemen Absensi
 <div align="center">
-  <img src="/assets/images/NEO.png" alt="Neo Telemetri Logo" width="120"/>
+  <img src="https://github.com/user-attachments/assets/b624facf-f666-46f7-a5be-def7d662e288" alt="Neo Telemetri Logo" width="250"/>
   <h1>Neo Telemetri</h1>
   <p>Sistem Informasi Manajemen Absensi Digital</p>
 </div>

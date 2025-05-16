@@ -1,13 +1,13 @@
-# Neo Telemetri - Sistem Informasi Manajemen Absensi
+# Telemetri - Sistem Informasi Manajemen Absensi UKM Neo Telemetri
 <div align="center">
   <img src="https://github.com/user-attachments/assets/b624facf-f666-46f7-a5be-def7d662e288" alt="Neo Telemetri Logo" width="250"/>
   <h1>Neo Telemetri</h1>
   <p>Sistem Informasi Manajemen Absensi Digital</p>
 </div>
 
-## 📋 Tentang Neo Telemetri
+## 📋 Tentang Telemetri
 
-Neo Telemetri adalah sistem informasi manajemen absensi digital yang dirancang untuk memudahkan pengelolaan kehadiran dalam berbagai kegiatan organisasi. Sistem ini menyediakan solusi terintegrasi untuk:
+Telemetri adalah sistem informasi manajemen absensi digital yang dirancang untuk memudahkan pengelolaan kehadiran dalam berbagai kegiatan organisasi UKM Neo Telemetri. Sistem ini menyediakan solusi terintegrasi untuk:
 
 - 📍 Manajemen presensi kegiatan
 - 📅 Pengelolaan jadwal rapat
@@ -85,12 +85,11 @@ php artisan serve
 
 ## 📝 Lisensi
 
-Hak Cipta © 2024 Neo Telemetri. Dilindungi Undang-Undang.
+Hak Cipta © 2025 Neo Telemetri. Dilindungi Undang-Undang.
 
 ## 👥 Tim Pengembang
 
--   Tim Neo Telemetri
--   Kontributor Komunitas
+-   Khalied Nauly Maturino
 
 ## 📞 Kontak
 

@@ -34,6 +34,11 @@ class GoogleController extends Controller
             $existingUser = User::where('email', $googleUser->email)->first();
 
             if ($existingUser) {
+                // Periksa apakah pengguna memiliki role 'admin'
+                if ($existingUser->role !== 'admin') {
+                    return redirect('/login')->with('error', 'Hanya admin yang diizinkan untuk login ke sistem ini.');
+                }
+                
                 $existingUser->update([
                     'google_id' => $googleUser->id,
                     'google_token' => $googleUser->token,
@@ -41,14 +46,14 @@ class GoogleController extends Controller
                 ]);
                 Auth::login($existingUser);
                 
-                return redirect()->route('dashboard');
+                return redirect()->route('admin.dashboard');
             } else {
                 // User not found in database, redirect back with error
-                return redirect('/login')->with('error', 'Your email is not registered in our system. Please contact the administrator.');
+                return redirect('/login')->with('error', 'Email Anda tidak terdaftar dalam sistem kami. Silakan hubungi administrator.');
             }
         
         } catch (Exception $e) {
-            return redirect('/login')->with('error', 'Something went wrong with Google login: ' . $e->getMessage());
+            return redirect('/login')->with('error', 'Terjadi kesalahan saat login dengan Google: ' . $e->getMessage());
         }
     }
 }

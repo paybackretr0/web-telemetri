@@ -25,10 +25,6 @@ use App\Http\Controllers\API\DutyScheduleController;
 |
 */
 
-Route::get('test', function() {
-    return response()->json(['message' => 'API is working!']);
-});
-
 Route::post('/auth/google-flutter', [AuthController::class, 'googleLogin']);
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
@@ -100,7 +96,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Kalender
     Route::prefix('calendar')->group(function () {
         Route::get('/', [CalendarController::class, 'getEvents']);
-        Route::post('/sync', [CalendarController::class, 'syncWithGoogle']);
     });
 });
 

@@ -17,6 +17,7 @@ class QrCode extends Model
     protected $fillable = [
         'activity_id',
         'code',
+        'type',
         'expiry_time',
         'created_by',
     ];

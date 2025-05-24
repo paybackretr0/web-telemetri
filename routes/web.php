@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\DelegationController;
 use App\Http\Controllers\Admin\DutyController;
 use App\Http\Controllers\Admin\PenggunaController;
 use App\Http\Controllers\Admin\PermissionController;
+use App\Http\Controllers\Admin\QrDutyController;
 
 /*
 |--------------------------------------------------------------------------
@@ -38,7 +39,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     // Admin Dashboard
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('admin.dashboard');
 
-    Route::get('/pengguna', [PenggunaController::class, 'index'])->name('admin.pengguna');
+    Route::resource('pengguna', PenggunaController::class);
 
     Route::get('/permission', [PermissionController::class, 'index'])->name('admin.permissions');
 
@@ -46,5 +47,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
     Route::get('/duty', [DutyController::class, 'index'])->name('admin.duty');
 
-    Route::get('/attendance', [AttendanceController::class, 'index'])->name('admin.attendance');
+    Route::resource('attendance', AttendanceController::class);
+
+    Route::get('/qrduty', [QrDutyController::class, 'index'])->name('admin.qrduty');
 });

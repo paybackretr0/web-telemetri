@@ -13,10 +13,11 @@ return new class extends Migration
     {
         Schema::create('qr_codes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('activity_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('activity_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('code')->unique();
-            $table->dateTime('expiry_time');
-            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
+            $table->enum('type', ['activity', 'duty', 'meeting'])->default('activity');
+            $table->timestamp('expiry_time');
+            $table->foreignId('created_by')->constrained('users');
             $table->timestamps();
         });
     }

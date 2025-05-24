@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('google_id')->nullable();
             $table->text('google_token')->nullable();
             $table->text('google_refresh_token')->nullable();
-            $table->enum('role', ['admin', 'pengurus', ])->default('pengurus');
+            $table->enum('role', ['admin', 'pengurus'])->default('pengurus');
             $table->string('nim')->nullable();
             $table->string('jurusan')->nullable();
             $table->string('nomor_seri')->nullable();

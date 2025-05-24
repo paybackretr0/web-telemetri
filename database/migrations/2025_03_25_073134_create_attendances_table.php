@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('activity_id')->constrained()->cascadeOnDelete();
-            $table->enum('status', ['hadir', 'alfa', 'izin', 'sakit', 'delegasi'])->default('alfa');
+            $table->enum('status', ['hadir', 'alfa', 'izin'])->default('alfa');
             $table->dateTime('check_in_time')->nullable();
             $table->string('check_in_location')->nullable();
             $table->decimal('check_in_latitude', 10, 8)->nullable();

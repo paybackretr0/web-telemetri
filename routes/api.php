@@ -13,6 +13,7 @@ use App\Http\Controllers\API\CalendarController;
 use App\Http\Controllers\API\DelegationController;
 use App\Http\Controllers\API\PermissionController;
 use App\Http\Controllers\API\DutyScheduleController;
+use App\Http\Controllers\API\HistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -96,6 +97,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Kalender
     Route::prefix('calendar')->group(function () {
         Route::get('/', [CalendarController::class, 'getEvents']);
+    });
+
+    Route::prefix('history')->group(function () {
+        Route::get('/activities', [HistoryController::class, 'activityHistory']);
+        Route::get('/meetings', [HistoryController::class, 'meetingHistory']);
+        Route::get('/all', [HistoryController::class, 'allHistory']);
     });
 });
 

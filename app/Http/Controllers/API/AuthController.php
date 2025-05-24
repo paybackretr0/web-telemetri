@@ -42,6 +42,7 @@ class AuthController extends Controller
                 }
                 
                 $existingUser = User::where('email', $userData['email'])->first();
+                $isAdmin = User::where('email', $userData['email'])->where('role', 'admin')->exists();
                 
                 if (!$existingUser) {
                     return response()->json([

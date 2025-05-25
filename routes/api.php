@@ -60,7 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Izin
     Route::prefix('permissions')->group(function () {
         Route::get('/my', [PermissionController::class, 'myPermissions']);
-        Route::apiResource('/', PermissionController::class);
+        Route::apiResource('/', PermissionController::class)->except('show');
+        Route::get('/{id}', [PermissionController::class, 'show']);
     });
         
     // Delegasi

@@ -9,11 +9,12 @@ use App\Models\QrCode;
 use App\Models\AttendanceType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
 
 class AttendanceController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Display a listing of activities and meetings.
      */
     public function index(Request $request)
     {
@@ -37,15 +38,11 @@ class AttendanceController extends Controller
 
         $attendanceTypes = AttendanceType::all();
 
-        return view('admin.attendance.index', [
-            'activities' => $activities,
-            'meetings' => $meetings,
-            'attendanceTypes' => $attendanceTypes,
-        ]);
+        return view('admin.attendance.index', compact('activities', 'meetings', 'attendanceTypes'));
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Store a new activity or meeting.
      */
     public function store(Request $request)
     {
@@ -53,60 +50,91 @@ class AttendanceController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
+            'event_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i|after:start_time',
             'type' => 'required|in:activity,meeting',
             'attendance_type_id' => 'required_if:type,activity|exists:attendance_types,id',
-            'generate_qr' => 'nullable',
+            'generate_qr' => 'nullable|boolean',
         ]);
 
-        if ($validated['type'] === 'activity') {
-            $activity = Activity::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'location' => $validated['location'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'attendance_type_id' => $validated['attendance_type_id'],
-                'created_by' => auth()->user->id(),
-            ]);
+        try {
+            // Combine date and time
+            $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['start_time']);
+            $endDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['end_time']);
 
-            // Generate QR Code for activity if requested
-            if ($request->has('generate_qr')) {
-                $this->generateQrCode($activity);
+            // Validate end_time is after start_time
+            if ($endDateTime <= $startDateTime) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['end_time' => ['Jam selesai harus setelah jam mulai.']]
+                ], 422);
             }
 
-            return redirect()
-                ->route('admin.attendance')
-                ->with('success', 'Kegiatan berhasil ditambahkan.');
-        } else {
-            Meeting::create([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'location' => $validated['location'],
-                'meeting_date' => $validated['start_time'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'created_by' => auth()->user->id(),
-            ]);
+            if ($validated['type'] === 'activity') {
+                $activity = Activity::create([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'location' => $validated['location'],
+                    'start_time' => $startDateTime,
+                    'end_time' => $endDateTime,
+                    'attendance_type_id' => $validated['attendance_type_id'],
+                    'created_by' => auth()->id(),
+                ]);
 
-            return redirect()
-                ->route('admin.attendance')
-                ->with('success', 'Rapat berhasil ditambahkan.');
+                if ($request->input('generate_qr', false)) {
+                    $this->generateQrCode($activity);
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Kegiatan berhasil ditambahkan.'
+                ]);
+            } else {
+                Meeting::create([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'location' => $validated['location'],
+                    'meeting_date' => $startDateTime,
+                    'start_time' => $startDateTime,
+                    'end_time' => $endDateTime,
+                    'created_by' => auth()->id(),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Rapat berhasil ditambahkan.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menambahkan data: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Show the form for editing the specified resource.
+     * Show the form for editing an activity or meeting.
      */
     public function edit($id, $type)
     {
-        $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
-        return response()->json($model);
+        try {
+            $model = $type === 'activity' ? Activity::with('qrCode')->findOrFail($id) : Meeting::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $model
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Data tidak ditemukan.'
+            ], 404);
+        }
     }
 
     /**
-     * Update the specified resource in storage.
+     * Update an existing activity or meeting.
      */
     public function update(Request $request, $id, $type)
     {
@@ -114,110 +142,201 @@ class AttendanceController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'location' => 'required|string|max:255',
-            'start_time' => 'required|date',
-            'end_time' => 'required|date|after:start_time',
+            'event_date' => 'required|date',
+            'start_time' => 'required|date_format:H:i',
+            'end_time' => 'required|date_format:H:i',
             'attendance_type_id' => 'required_if:type,activity|exists:attendance_types,id',
-            'regenerate_qr' => 'nullable',
+            'regenerate_qr' => 'nullable|boolean',
         ]);
 
-        if ($type === 'activity') {
-            $model = Activity::findOrFail($id);
-            $model->update([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'location' => $validated['location'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'attendance_type_id' => $validated['attendance_type_id'],
-            ]);
+        try {
+            // Combine date and time
+            $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['start_time']);
+            $endDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['end_time']);
 
-            // Regenerate QR Code if requested
-            if ($request->has('regenerate_qr')) {
-                // Delete existing QR code if any
-                if ($model->qrCode) {
-                    $model->qrCode->delete();
+            // Validate end_time is after start_time
+            if ($endDateTime <= $startDateTime) {
+                return response()->json([
+                    'success' => false,
+                    'errors' => ['end_time' => ['Jam selesai harus setelah jam mulai.']]
+                ], 422);
+            }
+
+            if ($type === 'activity') {
+                $model = Activity::findOrFail($id);
+                $model->update([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'location' => $validated['location'],
+                    'start_time' => $startDateTime,
+                    'end_time' => $endDateTime,
+                    'attendance_type_id' => $validated['attendance_type_id'],
+                ]);
+
+                if ($request->input('regenerate_qr', false)) {
+                    if ($model->qrCode) {
+                        $model->qrCode->delete();
+                    }
+                    $this->generateQrCode($model);
+                } elseif ($model->qrCode) {
+                    $model->qrCode->update([
+                        'expiry_time' => $endDateTime,
+                    ]);
                 }
-                
-                // Generate new QR code
-                $this->generateQrCode($model);
-            } else if ($model->qrCode) {
-                // Update QR Code expiry time
-                $model->qrCode->update([
-                    'expiry_time' => $validated['end_time'],
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Kegiatan berhasil diperbarui.'
+                ]);
+            } else {
+                $model = Meeting::findOrFail($id);
+                $model->update([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'location' => $validated['location'],
+                    'meeting_date' => $startDateTime,
+                    'start_time' => $startDateTime,
+                    'end_time' => $endDateTime,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Rapat berhasil diperbarui.'
                 ]);
             }
-        } else {
-            $model = Meeting::findOrFail($id);
-            $model->update([
-                'title' => $validated['title'],
-                'description' => $validated['description'],
-                'location' => $validated['location'],
-                'meeting_date' => $validated['start_time'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat memperbarui data: ' . $e->getMessage()
+            ], 500);
         }
-
-        return redirect()
-            ->route('admin.attendance')
-            ->with('success', ($type === 'activity' ? 'Kegiatan' : 'Rapat') . ' berhasil diperbarui.');
     }
 
     /**
-     * Remove the specified resource from storage.
+     * Remove an activity or meeting.
      */
     public function destroy($id, $type)
     {
-        $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
-        $model->delete();
+        try {
+            $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
+            $model->delete();
 
-        return redirect()
-            ->route('admin.attendance')
-            ->with('success', ($type === 'activity' ? 'Kegiatan' : 'Rapat') . ' berhasil dihapus.');
+            return response()->json([
+                'success' => true,
+                'message' => ($type === 'activity' ? 'Kegiatan' : 'Rapat') . ' berhasil dihapus.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus data: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Display QR code for the specified activity.
+     * Show QR code for an activity.
      */
     public function showQrCode($id)
     {
-        $activity = Activity::with('qrCode')->findOrFail($id);
-        
-        if (!$activity->qrCode) {
-            // Generate QR code if not exists
-            $qrCode = $this->generateQrCode($activity);
-        } else {
-            $qrCode = $activity->qrCode;
+        try {
+            $activity = Activity::with('qrCode')->findOrFail($id);
+            
+            if (!$activity->qrCode) {
+                $qrCode = $this->generateQrCode($activity);
+            } else {
+                $qrCode = $activity->qrCode;
+            }
+
+            $qrCodeImage = \QrCode::format('png')
+                ->size(300)
+                ->errorCorrection('H')
+                ->generate($qrCode->code);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'title' => $activity->title,
+                    'qr_image_url' => 'data:image/png;base64,' . base64_encode($qrCodeImage),
+                    'expiry_time' => $qrCode->expiry_time->format('d M Y H:i'),
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengambil QR code: ' . $e->getMessage()
+            ], 500);
         }
-
-        // Generate QR code image
-        $qrCodeImage = QrCodeGenerator::format('png')
-            ->size(300)
-            ->errorCorrection('H')
-            ->generate($qrCode->code);
-
-        return view('admin.attendance.qrcode', [
-            'activity' => $activity,
-            'qrCode' => $qrCode,
-            'qrCodeImage' => base64_encode($qrCodeImage),
-        ]);
     }
 
     /**
-     * Generate QR code for an activity.
+     * Regenerate QR code for an activity.
+     */
+    public function regenerateQrCode($id)
+    {
+        try {
+            $activity = Activity::findOrFail($id);
+            if ($activity->qrCode) {
+                $activity->qrCode->delete();
+            }
+            $qrCode = $this->generateQrCode($activity);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'QR Code berhasil dibuat ulang.',
+                'qr_code' => [
+                    'expiry_time' => $qrCode->expiry_time->format('d M Y H:i')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat membuat ulang QR code: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download QR code for an activity.
+     */
+    public function downloadQrCode($id)
+    {
+        try {
+            $activity = Activity::with('qrCode')->findOrFail($id);
+            
+            if (!$activity->qrCode) {
+                $qrCode = $this->generateQrCode($activity);
+            } else {
+                $qrCode = $activity->qrCode;
+            }
+
+            $qrCodeImage = \QrCode::format('png')
+                ->size(300)
+                ->errorCorrection('H')
+                ->generate($qrCode->code);
+
+            return response($qrCodeImage)
+                ->header('Content-Type', 'image/png')
+                ->header('Content-Disposition', 'attachment; filename="qrcode-activity-' . $id . '.png"');
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengunduh QR code: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Generate a new QR code for an activity.
      */
     private function generateQrCode($activity)
     {
-        // Generate a unique code
         $code = Str::random(10) . '-' . $activity->id . '-' . time();
-        
-        // Create QR code record
         return QrCode::create([
             'activity_id' => $activity->id,
             'code' => $code,
             'type' => 'attendance',
             'expiry_time' => $activity->end_time,
-            'created_by' => auth()->user->id(),
+            'created_by' => auth()->id(),
         ]);
     }
 }

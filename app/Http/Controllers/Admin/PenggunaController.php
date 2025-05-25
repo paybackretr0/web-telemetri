@@ -19,7 +19,7 @@ class PenggunaController extends Controller
             })
             ->paginate(10)
             ->withQueryString();
-
+            
         return view('admin.users.index', [
             'title' => 'Pengguna',
             'users' => $users
@@ -36,40 +36,67 @@ class PenggunaController extends Controller
             'sub_divisi' => ['nullable', 'string', 'max:255'],
         ]);
 
+        // Add default password for new users
+        $validated['password'] = Hash::make('password123'); // You might want to generate a random password
+
         User::create($validated);
 
-        return redirect()->route('pengguna.index')
-            ->with('success', 'Pengurus berhasil ditambahkan');
+        return response()->json(['success' => true, 'message' => 'Pengurus berhasil ditambahkan']);
     }
 
-    public function update(Request $request, User $user)
+    public function edit($id)
     {
-        $user = User::findOrFail($user->id);
-
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', 'string', 'in:pengurus,admin'],
-            'divisi' => ['nullable', 'string', 'max:255'],
-            'sub_divisi' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $user->update($validated);
-
-        return redirect()->route('pengguna.index')
-            ->with('success', 'Data pengurus berhasil diperbarui');
+        try {
+            $user = User::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $user
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User tidak ditemukan'
+            ], 404);
+        }
     }
 
-    public function destroy(User $user)
+    public function update(Request $request, $id)
     {
-        $user->delete();
+        try {
+            $user = User::findOrFail($id);
+            
+            $validated = $request->validate([
+                'name' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
+                'role' => ['required', 'string', 'in:pengurus,admin'],
+                'divisi' => ['nullable', 'string', 'max:255'],
+                'sub_divisi' => ['nullable', 'string', 'max:255'],
+            ]);
 
-        return redirect()->route('pengguna.index')
-            ->with('success', 'Pengurus berhasil dihapus');
+            $user->update($validated);
+
+            return response()->json(['success' => true, 'message' => 'Data Pengurus berhasil diperbarui']);
+                
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan saat memperbarui data Pengurus'], 500);
+        }
     }
 
-    public function edit(User $user)
+    public function destroy($id)
     {
-        return response()->json($user);
+        try {
+            $user = User::findOrFail($id);
+            $user->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Pengurus berhasil dihapus'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus pengurus'
+            ], 500);
+        }
     }
 }

@@ -70,7 +70,7 @@
 
     <!-- Menu Cepat -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <a href="{{ route('admin.attendance') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
+        <a href="{{ route('attendance.index') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
             <div class="flex items-center space-x-4">
                 <div class="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-all duration-200">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

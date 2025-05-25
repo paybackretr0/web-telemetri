@@ -115,13 +115,22 @@
 
     @push('scripts')
     <script>
-        // All your main page-specific JavaScript code goes inside here
-        document.addEventListener('DOMContentLoaded', function () {
-            // Attach event listeners for delete buttons
-            document.querySelectorAll('.delete-user-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const userId = this.dataset.userId;
-                    if (confirm('Apakah Anda yakin ingin menghapus pengurus ini?')) {
+    document.addEventListener('DOMContentLoaded', function () {
+        // Attach event listeners for delete buttons
+        document.querySelectorAll('.delete-user-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.dataset.userId;
+                Swal.fire({
+                    title: 'Konfirmasi Hapus',
+                    text: 'Apakah Anda yakin ingin menghapus pengurus ini?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#ef4444',
+                    confirmButtonText: 'Ya, Hapus!',
+                    cancelButtonText: 'Batal'
+                }).then((result) => {
+                    if (result.isConfirmed) {
                         fetch(`/admin/pengguna/${userId}`, {
                             method: 'POST',
                             headers: {
@@ -132,35 +141,79 @@
                         })
                         .then(response => {
                             if (response.ok) {
-                                window.location.reload();
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Berhasil!',
+                                    text: 'Pengurus berhasil dihapus',
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#2563eb'
+                                }).then(() => {
+                                    window.location.reload();
+                                });
                             } else {
-                                alert('Terjadi kesalahan saat menghapus pengurus.');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Gagal!',
+                                    text: 'Terjadi kesalahan saat menghapus pengurus',
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#2563eb'
+                                });
                             }
                         })
-                        .catch(error => console.error('Error deleting user:', error));
+                        .catch(error => {
+                            console.error('Error deleting user:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: 'Terjadi kesalahan saat menghapus pengurus',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2563eb'
+                            });
+                        });
                     }
                 });
             });
-
-            // Display success/error messages
-            @if(session('success'))
-                alert('{{ session('success') }}');
-            @endif
-
-            @if ($errors->any())
-                const hasStoreErrors = {{ $errors->has('name') || $errors->has('email') || $errors->has('role') || $errors->has('divisi') || $errors->has('sub_divisi') ? 'true' : 'false' }};
-                if (hasStoreErrors) {
-                    showAddUserModal();
-                } else {
-                    @if(session('user_id_for_edit_modal'))
-                        const userIdForEdit = {{ session('user_id_for_edit_modal') }};
-                        editUser(userIdForEdit);
-                    @else
-                        console.error('Validation errors occurred, but unable to determine which edit modal to re-open.');
-                    @endif
-                }
-            @endif
         });
+
+        // Display success/error messages
+        @if(session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: '{{ session('success') }}',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#2563eb'
+            });
+        @endif
+
+        @if ($errors->any())
+            const hasStoreErrors = {{ $errors->has('name') || $errors->has('email') || $errors->has('role') || $errors->has('divisi') || $errors->has('sub_divisi') ? 'true' : 'false' }};
+            if (hasStoreErrors) {
+                showAddUserModal();
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: 'Terdapat kesalahan pada input data',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2563eb'
+                });
+            } else {
+                @if(session('user_id_for_edit_modal'))
+                    const userIdForEdit = {{ session('user_id_for_edit_modal') }};
+                    editUser(userIdForEdit);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Gagal!',
+                        text: 'Terdapat kesalahan pada input data',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2563eb'
+                    });
+                @else
+                    console.error('Validation errors occurred, but unable to determine which edit modal to re-open.');
+                @endif
+            }
+        @endif
+    });
     </script>
     @endpush
 @endsection

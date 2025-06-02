@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('title');
             $table->text('description')->nullable();
             $table->date('meeting_date');
-            $table->time('start_time');
-            $table->time('end_time');
+            $table->dateTime('start_time');
+            $table->dateTime('end_time');
             $table->string('location')->nullable();
             $table->text('meeting_notes')->nullable();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();

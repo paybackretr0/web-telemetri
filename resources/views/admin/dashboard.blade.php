@@ -84,7 +84,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.duty') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
+        <a href="{{ route('duty.index') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
             <div class="flex items-center space-x-4">
                 <div class="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-all duration-200">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
             </div>
         </a>
 
-        <a href="{{ route('admin.permissions') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
+        <a href="{{ route('admin.permissions.index') }}" class="group bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:bg-blue-50 transition-all duration-200">
             <div class="flex items-center space-x-4">
                 <div class="p-3 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-all duration-200">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

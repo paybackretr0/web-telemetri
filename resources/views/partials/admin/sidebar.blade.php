@@ -17,7 +17,7 @@
             <span>Pengurus</span>
         </a>
        
-        <a href="{{ route('admin.permissions') }}" 
+        <a href="{{ route('admin.permissions.index') }}" 
             class="flex items-center px-4 py-2.5 mt-2 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors duration-150 {{ request()->routeIs('admin.permissions') ? 'bg-blue-100 text-blue-700 font-semibold' : 'font-medium' }}">
             <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -34,7 +34,7 @@
         </a>
         
         <!-- Fixed Dropdown Menu untuk Piket -->
-        <div x-data="{ isOpen: {{ request()->routeIs('admin.delegations') || request()->routeIs('duty.index') || request()->routeIs('admin.qrduty') ? 'true' : 'false' }} }" class="relative mt-2">
+        <div x-data="{ isOpen: {{ request()->routeIs('admin.delegations.index') || request()->routeIs('duty.index') || request()->routeIs('admin.qrduty.index') ? 'true' : 'false' }} }" class="relative mt-2">
             <button @click="isOpen = !isOpen" type="button" class="w-full flex items-center justify-between px-4 py-2.5 text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 ease-in-out font-medium {{ request()->routeIs('admin.delegations') || request()->routeIs('duty.index') ? 'bg-blue-100 text-blue-700 font-semibold' : '' }}">
                 <div class="flex items-center">
                     <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -54,9 +54,9 @@
                  x-transition:leave="transition ease-in duration-150"
                  x-transition:leave-start="opacity-100 transform scale-100 translate-y-0"
                  x-transition:leave-end="opacity-0 transform scale-95 -translate-y-2"
-                 @click.away="isOpen = {{ request()->routeIs('admin.delegations') || request()->routeIs('duty.index') || request()->routeIs('admin.qrduty') ? 'true' : 'false' }}"
+                 @click.away="isOpen = {{ request()->routeIs('admin.delegations.index') || request()->routeIs('duty.index') || request()->routeIs('admin.qrduty.index') ? 'true' : 'false' }}"
                  class="pl-4 mt-1 space-y-1">
-                <a href="{{ route('admin.qrduty') }}" class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 ease-in-out {{ request()->routeIs('admin.qrduty') ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-medium' }}">
+                <a href="{{ route('admin.qrduty.index') }}" class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 ease-in-out {{ request()->routeIs('admin.qrduty') ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-medium' }}">
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                     </svg>
@@ -68,7 +68,7 @@
                     </svg>
                     <span>Manajemen Piket</span>
                 </a>
-                <a href="{{ route('admin.delegations') }}" class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 ease-in-out {{ request()->routeIs('admin.delegations') ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-medium' }}">
+                <a href="{{ route('admin.delegations.index') }}" class="flex items-center px-4 py-2 text-sm text-gray-600 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-all duration-200 ease-in-out {{ request()->routeIs('admin.delegations.index') ? 'bg-blue-50 text-blue-700 font-semibold' : 'font-medium' }}">
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
                     </svg>

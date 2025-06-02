@@ -120,8 +120,19 @@
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $meeting->title }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-lg">Rapat</span></td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->location }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->start_time->format('d M Y H:i') }} - {{ $meeting->end_time->format('H:i') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">-</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->meeting_date->format('d M Y')  }} {{ $meeting->start_time->format('H:i') }} - {{ $meeting->end_time->format('H:i') }}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            @if($meeting->qrCode)
+                                <button onclick="viewQrCode({{ $meeting->id }}, 'meeting')" class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150 group">
+                                    <svg class="w-4 h-4 mr-2 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
+                                    </svg>
+                                    <span class="group-hover:text-blue-700">Lihat QR</span>
+                                </button>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->creator->name }}</td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div class="flex items-center space-x-3">
@@ -189,6 +200,16 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const generateQrCheckbox = document.getElementById('generate_qr');
+    const qrExpiryContainer = document.getElementById('qr_expiry_container');
+    
+    if (generateQrCheckbox && qrExpiryContainer) {
+        generateQrCheckbox.addEventListener('change', function() {
+            qrExpiryContainer.classList.toggle('hidden', !this.checked);
+        });
+        // Initial state
+        qrExpiryContainer.classList.toggle('hidden', !generateQrCheckbox.checked);
+    }
     // Add form submission
     const addForm = document.getElementById('addAttendanceForm');
     if (addForm) {
@@ -201,6 +222,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = this;
         const submitBtn = document.getElementById('addSubmitBtn');
         const originalText = submitBtn.innerHTML;
+        const generateQr = document.getElementById('generate_qr').checked ? '1' : '0';
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
@@ -213,6 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         clearFormErrors('addAttendanceForm');
         const formData = new FormData(form);
+        formData.set('generate_qr', generateQr);
 
         fetch(form.action, {
             method: 'POST',
@@ -394,18 +417,16 @@ document.addEventListener('DOMContentLoaded', function () {
         document.body.style.overflow = 'hidden';
 
         const form = document.getElementById('editAttendanceForm');
-        form.action = "{{ route('attendance.update.type', ['id' => ':id', 'type' => ':type']) }}".replace(':id', id).replace(':type', type);
+        form.action = "{{ route('admin.attendance.update.type', ['id' => ':id', 'type' => ':type']) }}".replace(':id', id).replace(':type', type);
         document.getElementById('edit_id').value = id;
         document.getElementById('edit_type').value = type;
-
-        document.getElementById('download_qr_btn').href = "{{ route('attendance.qrcode-download', ['id' => ':id']) }}".replace(':id', id);
 
         const attendanceTypeContainer = document.getElementById('edit_attendance_type_container');
         const qrSection = document.getElementById('qr_code_section');
         attendanceTypeContainer.classList.toggle('hidden', type === 'meeting');
-        qrSection.classList.toggle('hidden', type === 'meeting');
+        qrSection.classList.remove('hidden');
 
-        fetch("{{ route('attendance.edit.type', ['id' => ':id', 'type' => ':type']) }}".replace(':id', id).replace(':type', type), {
+        fetch("{{ route('admin.attendance.edit.type', ['id' => ':id', 'type' => ':type']) }}".replace(':id', id).replace(':type', type), {
             headers: {
                 'X-Requested-With': 'XMLHttpRequest'
             }
@@ -491,9 +512,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300);
     };
 
-    // View QR code
-    window.viewQrCode = function(id) {
-        fetch("{{ route('attendance.qrcode', ['id' => ':id']) }}".replace(':id', id), {
+    // View QR code dengan parameter type
+    window.viewQrCode = function(id, type = 'activity') {
+        const url = "{{ route('admin.attendance.qrcode', ['id' => ':id']) }}".replace(':id', id) + `?type=${type}`;
+        fetch(url, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(response => response.json())
@@ -512,8 +534,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 Swal.fire({
                     icon: 'error',
-                    title: 'Gagal!',
-                    text: data.message || 'Gagal memuat QR code.',
+                    title: 'QR Code Belum Tersedia',
+                    text: data.message || 'QR Code belum dibuat. Silakan edit kegiatan dan centang opsi "Generate QR Code".',
                     confirmButtonColor: '#4f46e5'
                 });
             }
@@ -547,11 +569,9 @@ document.addEventListener('DOMContentLoaded', function () {
         typeSelect.addEventListener('change', function() {
             const isActivity = this.value === 'activity';
             document.getElementById('attendance_type_container').classList.toggle('hidden', !isActivity);
-            document.getElementById('generate_qr_container').classList.toggle('hidden', !isActivity);
         });
     }
 
-    // Regenerate QR code
     const regenerateQrCheckbox = document.getElementById('regenerate_qr');
     if (regenerateQrCheckbox) {
         regenerateQrCheckbox.addEventListener('change', function() {
@@ -569,6 +589,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }).then((result) => {
                 if (result.isConfirmed) {
                     const id = document.getElementById('edit_id').value;
+                    const type = document.getElementById('edit_type').value;
                     fetch(`/admin/attendance/${id}/regenerate-qr`, {
                         method: 'POST',
                         headers: {

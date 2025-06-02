@@ -61,4 +61,12 @@ class Meeting extends Model
                     ->withPivot('status', 'check_in_time')
                     ->withTimestamps();
     }
+
+    /**
+     * Get the QR code associated with the meeting.
+     */
+    public function qrCode()
+    {
+        return $this->hasOne(QrCode::class);
+    }
 }

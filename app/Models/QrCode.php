@@ -16,7 +16,9 @@ class QrCode extends Model
      */
     protected $fillable = [
         'activity_id',
+        'meeting_id',
         'code',
+        'file_path',
         'type',
         'expiry_time',
         'created_by',
@@ -37,6 +39,14 @@ class QrCode extends Model
     public function activity()
     {
         return $this->belongsTo(Activity::class);
+    }
+
+    /**
+     * Get the meeting that owns the QR code.
+     */
+    public function meeting()
+    {
+        return $this->belongsTo(Meeting::class);
     }
 
     /**

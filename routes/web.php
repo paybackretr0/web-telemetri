@@ -41,30 +41,42 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
 
     Route::resource('pengguna', PenggunaController::class);
 
-    Route::get('/permission', [PermissionController::class, 'index'])->name('admin.permissions');
-    Route::get('/permission/{id}', [PermissionController::class, 'show'])->name('admin.permissions.show');
-    Route::post('/permission/{id}/approve', [PermissionController::class, 'approve'])->name('admin.permissions.approve');
-    Route::post('/permission/{id}/reject', [PermissionController::class, 'reject'])->name('admin.permissions.reject');
+    Route::prefix('permission')->name('admin.permissions.')->group(function () {
+        Route::get('/', [PermissionController::class, 'index'])->name('index');
+        Route::get('/{id}', [PermissionController::class, 'show'])->name('show');
+        Route::post('/{id}/approve', [PermissionController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [PermissionController::class, 'reject'])->name('reject');
+    });
 
     // Delegation routes
-    Route::get('/delegation', [DelegationController::class, 'index'])->name('admin.delegations');
-    Route::post('/delegation', [DelegationController::class, 'store'])->name('admin.delegations.store');
-    Route::get('/delegation/{id}', [DelegationController::class, 'show'])->name('admin.delegations.show');
-    Route::get('/delegation/{id}/edit', [DelegationController::class, 'edit'])->name('admin.delegations.edit');
-    Route::put('/delegation/{id}', [DelegationController::class, 'update'])->name('admin.delegations.update');
-    Route::post('/delegation/{id}/approve', [DelegationController::class, 'approve'])->name('admin.delegations.approve');
-    Route::post('/delegation/{id}/reject', [DelegationController::class, 'reject'])->name('admin.delegations.reject');
-    Route::post('/delegation/{id}/cancel', [DelegationController::class, 'cancel'])->name('admin.delegations.cancel');
+    Route::prefix('delegation')->name('admin.delegations.')->group(function () {
+        Route::get('/', [DelegationController::class, 'index'])->name('index');
+        Route::post('/', [DelegationController::class, 'store'])->name('store');
+        Route::get('/{id}', [DelegationController::class, 'show'])->name('show');
+        Route::get('/{id}/edit', [DelegationController::class, 'edit'])->name('edit');
+        Route::put('/{id}', [DelegationController::class, 'update'])->name('update');
+        Route::post('/{id}/approve', [DelegationController::class, 'approve'])->name('approve');
+        Route::post('/{id}/reject', [DelegationController::class, 'reject'])->name('reject');
+        Route::post('/{id}/cancel', [DelegationController::class, 'cancel'])->name('cancel');
+    });
 
     Route::resource('duty', DutyController::class);
 
-    Route::get('/attendance/{id}/{type}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit.type');
-    Route::put('/attendance/{id}/{type}', [AttendanceController::class, 'update'])->name('attendance.update.type');
-    Route::delete('/attendance/{id}/{type}', [AttendanceController::class, 'destroy'])->name('attendance.destroy.type');
-    Route::get('/attendance/{id}/qrcode', [AttendanceController::class, 'showQrCode'])->name('attendance.qrcode');
-    Route::post('/attendance/{id}/regenerate-qr', [AttendanceController::class, 'regenerateQrCode'])->name('attendance.regenerate-qr');
-    Route::get('/attendance/{id}/qrcode-download', [AttendanceController::class, 'downloadQrCode'])->name('attendance.qrcode-download');
+    Route::prefix('attendance')->name('admin.attendance.')->group(function () {
+        Route::get('/{id}/{type}/edit', [AttendanceController::class, 'edit'])->name('edit.type');
+        Route::put('/{id}/{type}', [AttendanceController::class, 'update'])->name('update.type');
+        Route::delete('/{id}/{type}', [AttendanceController::class, 'destroy'])->name('destroy.type');
+        Route::get('/{id}/qrcode', [AttendanceController::class, 'showQrCode'])->name('qrcode');
+        Route::post('/{id}/regenerate-qr', [AttendanceController::class, 'regenerateQrCode'])->name('regenerate-qr');
+    });
     Route::resource('attendance', AttendanceController::class)->except(['edit', 'update', 'destroy']);
 
-    Route::get('/qrduty', [QrDutyController::class, 'index'])->name('admin.qrduty');
+    // QR Duty routes
+    Route::prefix('qrduty')->name('admin.qrduty.')->group(function () {
+        Route::get('/', [QrDutyController::class, 'index'])->name('index');
+        Route::post('/', [QrDutyController::class, 'store'])->name('store');
+        Route::put('/{id}', [QrDutyController::class, 'update'])->name('update');
+        Route::delete('/{id}', [QrDutyController::class, 'destroy'])->name('destroy');
+        Route::get('/show/{code}', [QrDutyController::class, 'showQrCode'])->name('show');
+    });
 });

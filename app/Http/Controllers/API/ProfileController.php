@@ -52,6 +52,7 @@ class ProfileController extends Controller
             'phone_number' => 'sometimes|nullable|string|max:20',
             'nim' => 'sometimes|nullable|string|max:20',
             'jurusan' => 'sometimes|nullable|string|max:100',
+            'nomor_seri' => 'sometimes|nullable|string|max:20',
             'profile_picture' => 'sometimes|nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
        
@@ -77,6 +78,10 @@ class ProfileController extends Controller
        
         if ($request->has('jurusan')) {
             $userModel->jurusan = $request->jurusan;
+        }
+
+        if ($request->has('nomor_seri')) {
+            $userModel->nomor_seri = $request->nomor_seri;
         }
        
         if ($request->hasFile('profile_picture')) {

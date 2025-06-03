@@ -88,19 +88,40 @@
                         </td>
                     </tr>
                 @endforelse
+                @if ($activities->hasPages())
+                <x-slot name="pagination">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            @if (!$activities->onFirstPage())
+                                <a href="{{ $activities->previousPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </a>
+                            @endif
+                            
+                            <span class="text-sm text-gray-700">
+                                Halaman {{ $activities->currentPage() }} dari {{ $activities->lastPage() }}
+                            </span>
+                            
+                            @if ($activities->hasMorePages())
+                                <a href="{{ $activities->nextPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                    <span class="sr-only">Next</span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            @endif
+                        </div>
+                        
+                        <div class="text-sm text-gray-600">
+                            Menampilkan {{ $activities->firstItem() ?? 0 }} - {{ $activities->lastItem() ?? 0 }} dari {{ $activities->total() }} data
+                        </div>
+                    </div>
+                </x-slot>
+            @endif
             </x-table>
-            <div class="mt-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex items-center text-sm text-gray-500">
-                    <span>Menampilkan</span>
-                    <span class="font-semibold mx-1">{{ $activities->firstItem() ?? 0 }}</span>
-                    <span>sampai</span>
-                    <span class="font-semibold mx-1">{{ $activities->lastItem() ?? 0 }}</span>
-                    <span>dari</span>
-                    <span class="font-semibold mx-1">{{ $activities->total() }}</span>
-                    <span>data kegiatan</span>
-                </div>
-                {{ $activities->links('vendor.pagination.custom-minimal') }}
-            </div>
         </div>
 
         <div x-show="activeTab === 'meetings'" class="mt-6">
@@ -157,19 +178,40 @@
                         </td>
                     </tr>
                 @endforelse
+                @if ($meetings->hasPages())
+                <x-slot name="pagination">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            @if (!$meetings->onFirstPage())
+                                <a href="{{ $meetings->previousPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                    <span class="sr-only">Previous</span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                    </svg>
+                                </a>
+                            @endif
+                            
+                            <span class="text-sm text-gray-700">
+                                Halaman {{ $meetings->currentPage() }} dari {{ $meetings->lastPage() }}
+                            </span>
+                            
+                            @if ($meetings->hasMorePages())
+                                <a href="{{ $meetings->nextPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                    <span class="sr-only">Next</span>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                    </svg>
+                                </a>
+                            @endif
+                        </div>
+                        
+                        <div class="text-sm text-gray-600">
+                            Menampilkan {{ $meetings->firstItem() ?? 0 }} - {{ $meetings->lastItem() ?? 0 }} dari {{ $meetings->total() }} data
+                        </div>
+                    </div>
+                </x-slot>
+            @endif
             </x-table>
-            <div class="mt-4 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-                <div class="flex items-center text-sm text-gray-500">
-                    <span>Menampilkan</span>
-                    <span class="font-semibold mx-1">{{ $meetings->firstItem() ?? 0 }}</span>
-                    <span>sampai</span>
-                    <span class="font-semibold mx-1">{{ $meetings->lastItem() ?? 0 }}</span>
-                    <span>dari</span>
-                    <span class="font-semibold mx-1">{{ $meetings->total() }}</span>
-                    <span>data rapat</span>
-                </div>
-                {{ $meetings->links('vendor.pagination.custom-minimal') }}
-            </div>
         </div>
     </div>
 

@@ -19,7 +19,7 @@ class DutyController extends Controller
         }])
         ->orderBy('day_of_week')
         ->orderBy('start_time')
-        ->get();
+        ->paginate(10);
 
         $users = User::where('role', 'pengurus')->get();
 
@@ -40,15 +40,13 @@ class DutyController extends Controller
         ]);
 
         try {
-            // Create DutySchedule
             $schedule = DutySchedule::create([
                 'day_of_week' => $validated['day_of_week'],
-                'start_time' => $validated['start_time'], // Store as string (e.g., '08:00')
-                'end_time' => $validated['end_time'],     // Store as string (e.g., '16:00')
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
                 'location' => $validated['location'],
             ]);
 
-            // Attach users with pivot data
             foreach ($validated['users'] as $user) {
                 $schedule->users()->attach($user['id'], [
                     'start_date' => $user['start_date'],
@@ -81,8 +79,8 @@ class DutyController extends Controller
                 'data' => [
                     'id' => $schedule->id,
                     'day_of_week' => $schedule->day_of_week,
-                    'start_time' => $schedule->start_time, // Already a string (e.g., '08:00:00')
-                    'end_time' => $schedule->end_time,     // Already a string (e.g., '16:00:00')
+                    'start_time' => $schedule->start_time,
+                    'end_time' => $schedule->end_time,
                     'location' => $schedule->location,
                     'users' => $schedule->users->map(function ($user) {
                         return [
@@ -119,15 +117,13 @@ class DutyController extends Controller
         try {
             $schedule = DutySchedule::findOrFail($id);
 
-            // Update DutySchedule
             $schedule->update([
                 'day_of_week' => $validated['day_of_week'],
-                'start_time' => $validated['start_time'], // Store as string
-                'end_time' => $validated['end_time'],     // Store as string
+                'start_time' => $validated['start_time'],
+                'end_time' => $validated['end_time'],
                 'location' => $validated['location'],
             ]);
 
-            // Sync users with pivot data
             $users = collect($validated['users'])->mapWithKeys(function ($user) {
                 return [$user['id'] => [
                     'start_date' => $user['start_date'],
@@ -146,6 +142,26 @@ class DutyController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Terjadi kesalahan saat memperbarui jadwal.',
+            ], 500);
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $schedule = DutySchedule::findOrFail($id);
+            $schedule->users()->detach(); // Remove all associated users
+            $schedule->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Jadwal piket berhasil dihapus.'
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error deleting duty schedule: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat menghapus jadwal.'
             ], 500);
         }
     }

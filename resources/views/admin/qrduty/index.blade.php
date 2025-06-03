@@ -44,12 +44,6 @@
                             </svg>
                             <span class="group-hover:text-blue-700">Lihat</span>
                         </button>
-                        <button onclick="editQR('{{ $qr->id }}')" class="inline-flex items-center px-3 py-1.5 bg-yellow-50 text-yellow-600 rounded-lg hover:bg-yellow-100 transition-colors duration-150 group">
-                            <svg class="w-4 h-4 mr-2 group-hover:text-yellow-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                            <span class="group-hover:text-yellow-700">Edit</span>
-                        </button>
                         <button onclick="deleteQR('{{ $qr->id }}')" class="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-150 group">
                             <svg class="w-4 h-4 mr-2 group-hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -108,8 +102,6 @@
 
 <!-- Include modals -->
 @include('admin.qrduty.add-qrduty-modal')
-@include('admin.qrduty.edit-qrduty-modal')
-
 <!-- Modal Show QR Code -->
 <div id="showQRModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
@@ -181,18 +173,6 @@ function closeAddModal() {
     clearFormErrors('addQrDutyForm');
 }
 
-function openEditModal() {
-    document.getElementById('editQrDutyModal').classList.remove('hidden');
-    document.getElementById('editQrDutyModal').classList.add('flex');
-}
-
-function closeEditModal() {
-    document.getElementById('editQrDutyModal').classList.add('hidden');
-    document.getElementById('editQrDutyModal').classList.remove('flex');
-    document.getElementById('editQrDutyForm').reset();
-    clearFormErrors('editQrDutyForm');
-}
-
 function showQR(code) {
     fetch(`/admin/qrduty/show/${code}`, {
         method: 'GET',
@@ -208,7 +188,6 @@ function showQR(code) {
             qrCodeDisplay.innerHTML = `
                 <div class="flex flex-col items-center">
                     <img src="${data.data.qr_image_url}" alt="QR Code" class="w-64 h-64 mb-4">
-                    <p class="text-sm text-gray-600">Kode: ${data.data.code}</p>
                     <p class="text-sm text-gray-600">Berlaku hingga: ${data.data.expiry_time}</p>
                 </div>
             `;
@@ -352,62 +331,6 @@ function handleAddFormSubmit(form) {
             icon: 'error',
             title: 'Error!',
             text: 'Terjadi kesalahan saat membuat QR Code.',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#2563eb'
-        });
-    });
-}
-
-function handleEditFormSubmit(form) {
-    const formData = new FormData(form);
-    formData.append('_method', 'PUT');
-
-    fetch(form.action, {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: data.message,
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#2563eb'
-            }).then(() => {
-                window.location.reload();
-            });
-            closeEditModal();
-        } else if (data.errors) {
-            showFormErrors('editQrDutyForm', data.errors);
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: 'Terdapat kesalahan pada input data.',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#2563eb'
-            });
-        } else {
-            Swal.fire({
-                icon: 'error',
-                title: 'Gagal!',
-                text: data.message || 'Terjadi kesalahan saat memperbarui QR Code.',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#2563eb'
-            });
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: 'Terjadi kesalahan saat memperbarui QR Code.',
             confirmButtonText: 'OK',
             confirmButtonColor: '#2563eb'
         });

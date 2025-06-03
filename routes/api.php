@@ -2,9 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\API\AbsensiController;
-use App\Http\Controllers\API\UserController;
-use App\Http\Controllers\API\RapatController;
+use App\Http\Controllers\API\AttendanceController;
 use App\Http\Controllers\API\ProfileController;
 use App\Http\Controllers\API\NotificationController;
 use App\Http\Controllers\API\ActivityController;
@@ -37,12 +35,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::get('/user', [UserController::class, 'show']);
     // Route::put('/user', [UserController::class, 'update']);
     
-    // // Absensi routes
-    // Route::prefix('absensi')->group(function () {
-    //     // Absensi Piket
-    //     Route::get('/piket', [AbsensiController::class, 'getPiketList']);
-    //     Route::post('/piket/scan', [AbsensiController::class, 'scanPiket']);
-    //     Route::get('/piket/history', [AbsensiController::class, 'getPiketHistory']);
+    // Absensi routes
+    Route::prefix('absensi')->group(function () {
+        Route::post('/{code}', [AttendanceController::class, 'scanQrCode']);
+    });
         
     //     // Absensi Rapat & Kegiatan
     //     Route::get('/kegiatan', [AbsensiController::class, 'getKegiatanList']);

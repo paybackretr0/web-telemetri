@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\QrCode;
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
@@ -32,7 +33,8 @@ class QrDutyController extends Controller
             ]);
 
             $code = Str::random(10);
-            $expiryTime = Carbon::now()->addHours($request->expiry_time);
+            // Convert expiry_time to integer
+            $expiryTime = Carbon::now()->addHours((int)$request->expiry_time);
 
             // Generate QR Code image
             $qrCode = new EndroidQrCode($code);
@@ -56,7 +58,7 @@ class QrDutyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'QR Code piket berhasil dibuat.',
+                'message' => 'QR Code piket berhasil dibuat dengan masa berlaku ' . ($request->expiry_time == 2160 ? '3 bulan' : $request->expiry_time . ' jam') . '.',
                 'data' => $qrcode
             ]);
         } catch (\Exception $e) {
@@ -84,7 +86,7 @@ class QrDutyController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'QR Code piket berhasil diperbarui.',
+                'message' => 'QR Code piket berhasil diperbarui dengan masa berlaku ' . ($request->expiry_time == 2160 ? '3 bulan' : $request->expiry_time . ' jam') . '.',
                 'data' => $qrcode
             ]);
         } catch (\Exception $e) {
@@ -101,7 +103,6 @@ class QrDutyController extends Controller
         try {
             $qrcode = QrCode::findOrFail($id);
             
-            // Delete QR code image if exists
             if ($qrcode->file_path && Storage::disk('public')->exists($qrcode->file_path)) {
                 Storage::disk('public')->delete($qrcode->file_path);
             }

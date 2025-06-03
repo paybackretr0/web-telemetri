@@ -1,3 +1,6 @@
+@php
+$artifactId = 'c7f2a4d5-8e3f-4c9b-a8e2-9f7b3c2e8d1a';
+@endphp
 @extends('layouts.admin')
 
 @section('title', 'Jadwal Piket')
@@ -54,6 +57,12 @@
                                 </svg>
                                 <span class="group-hover:text-blue-700">Edit</span>
                             </button>
+                            <button onclick="deleteSchedule({{ $schedule->id }})" class="inline-flex items-center px-3 py-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors duration-150 group">
+                                <svg class="w-4 h-4 mr-2 group-hover:text-red-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                <span class="group-hover:text-red-700">Hapus</span>
+                            </button>
                         </div>
                     </td>
                 </tr>
@@ -69,6 +78,39 @@
                     </td>
                 </tr>
             @endforelse
+            @if ($schedules->hasPages())
+            <x-slot name="pagination">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        @if (!$schedules->onFirstPage())
+                            <a href="{{ $schedules->previousPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                <span class="sr-only">Previous</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                            </a>
+                        @endif
+                        
+                        <span class="text-sm text-gray-700">
+                            Halaman {{ $schedules->currentPage() }} dari {{ $schedules->lastPage() }}
+                        </span>
+                        
+                        @if ($schedules->hasMorePages())
+                            <a href="{{ $schedules->nextPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
+                                <span class="sr-only">Next</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </a>
+                        @endif
+                    </div>
+                    
+                    <div class="text-sm text-gray-600">
+                        Menampilkan {{ $schedules->firstItem() ?? 0 }} - {{ $schedules->lastItem() ?? 0 }} dari {{ $schedules->total() }} data
+                    </div>
+                </div>
+            </x-slot>
+        @endif
         </x-table>
     </div>
 
@@ -234,6 +276,62 @@
             });
         }
     
+        // Delete schedule
+        window.deleteSchedule = function (id) {
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: 'Apakah Anda yakin ingin menghapus jadwal piket ini?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#ef4444',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch("{{ route('duty.destroy', ':id') }}".replace(':id', id), {
+                        method: 'DELETE',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Berhasil!',
+                                text: data.message,
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2563eb'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Gagal!',
+                                text: data.message || 'Terjadi kesalahan saat menghapus jadwal.',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2563eb'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Terjadi kesalahan saat menghapus jadwal.',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#2563eb'
+                        });
+                    });
+                }
+            });
+        };
+
         // Open add modal
         window.openAddModal = function () {
             clearFormErrors('addDutyForm');
@@ -408,7 +506,7 @@
                         </svg>
                     </button>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <select name="users[${userIndex}][id]" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <select name="users[${userIndex}][id]" class="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:borderiley-blue-500" required>
                             <option value="" disabled selected>Pilih Petugas</option>
                             @foreach($users as $user)
                                 <option value="{{ $user->id }}">{{ $user->name }}</option>
@@ -488,7 +586,18 @@
                 confirmButtonColor: '#2563eb'
             });
         @endif
+
+        @if(session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Gagal!',
+                text: '{{ session('error') }}',
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#2563eb'
+            });
+        @endif
     });
     </script>
     @endpush
 @endsection
+

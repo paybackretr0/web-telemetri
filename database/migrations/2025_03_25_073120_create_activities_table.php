@@ -20,7 +20,6 @@ return new class extends Migration
             $table->decimal('longitude', 11, 8)->nullable();
             $table->dateTime('start_time');
             $table->dateTime('end_time');
-            $table->string('qr_code')->nullable();
             $table->foreignId('attendance_type_id')->constrained()->cascadeOnDelete();
             $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
             $table->timestamps();

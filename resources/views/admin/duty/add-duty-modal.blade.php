@@ -1,3 +1,4 @@
+
 <!-- Add Duty Modal -->
 <div id="addDutyModal" class="fixed inset-0 bg-gray-900 bg-opacity-60 overflow-y-auto h-full w-full hidden z-50 flex items-center justify-center p-4 transition-opacity duration-300">
     <div class="relative bg-white rounded-2xl shadow-xl w-full max-w-3xl mx-auto transform transition-all duration-300 scale-95 opacity-0" id="addModalContainer">

@@ -6,12 +6,9 @@
             @csrf
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Masa Berlaku</label>
+                <!-- In addQrDutyModal -->
                 <select name="expiry_time" id="expiry_time" class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white">
-                    <option value="1">1 Jam</option>
-                    <option value="2">2 Jam</option>
-                    <option value="4">4 Jam</option>
-                    <option value="8">8 Jam</option>
-                    <option value="24">24 Jam</option>
+                    <option value="2160">3 Bulan</option>
                 </select>
                 <p id="expiry_time_error" class="mt-1 text-sm text-red-600 hidden"></p>
             </div>

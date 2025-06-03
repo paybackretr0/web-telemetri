@@ -22,7 +22,6 @@ class Activity extends Model
         'longitude',
         'start_time',
         'end_time',
-        'qr_code',
         'attendance_type_id',
         'created_by',
     ];

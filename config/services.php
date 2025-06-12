@@ -41,4 +41,8 @@ return [
         'redirect' => env('GOOGLE_REDIRECT_URI'),
     ],
 
+    'firebase' => [
+        'credentials' => base_path('storage/app/private/telemetri-a2c59-firebase-adminsdk-fbsvc-159be5db96.json'),
+    ],
+
 ];

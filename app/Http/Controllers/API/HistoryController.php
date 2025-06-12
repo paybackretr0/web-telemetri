@@ -84,12 +84,12 @@ class HistoryController extends Controller
                 return [
                     'id' => $item->id,
                     'type' => 'activity',
-                    'title' => $item->activity->title ?? 'Aktivitas',
+                    'title' => $item->activity->title ?? 'Piket Mingguan',
                     'date' => $item->activity->date ?? $item->created_at->format('Y-m-d'),
                     'status' => $item->status,
                     'check_in_time' => $item->check_in_time,
                     'check_out_time' => $item->check_out_time,
-                    'activity_type' => $item->activity->attendanceType->name ?? 'Umum',
+                    'activity_type' => $item->activity->attendanceType->name ?? 'Piket',
                     'created_at' => $item->created_at
                 ];
             });

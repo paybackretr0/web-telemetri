@@ -33,6 +33,7 @@ class User extends Authenticatable
         'jabatan',
         'divisi',
         'sub_divisi',
+        'device_token',
     ];
 
     /**
@@ -106,37 +107,11 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the programs created by the user.
-     */
-    public function createdPrograms()
-    {
-        return $this->hasMany(Program::class, 'created_by');
-    }
-
-    /**
-     * Get the programs the user is part of.
-     */
-    public function programs()
-    {
-        return $this->belongsToMany(Program::class, 'user_programs')
-                    ->withPivot('role')
-                    ->withTimestamps();
-    }
-
-    /**
      * Get the user's notifications.
      */
     public function notifications()
     {
         return $this->hasMany(Notification::class);
-    }
-
-    /**
-     * Get the user's calendar integrations.
-     */
-    public function calendarIntegrations()
-    {
-        return $this->hasMany(CalendarIntegration::class);
     }
 
     /**

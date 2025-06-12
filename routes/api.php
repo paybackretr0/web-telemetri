@@ -34,6 +34,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // User profile
     // Route::get('/user', [UserController::class, 'show']);
     // Route::put('/user', [UserController::class, 'update']);
+    Route::post('/update-device-token', [AuthController::class, 'updateDeviceToken']);
     
     // Absensi routes
     Route::prefix('absensi')->group(function () {

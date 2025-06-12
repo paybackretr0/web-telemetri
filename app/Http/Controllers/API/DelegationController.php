@@ -10,6 +10,10 @@ use App\Models\Notification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Kreait\Firebase\Contract\Messaging;
+use Kreait\Firebase\Messaging\CloudMessage;
+use Kreait\Firebase\Messaging\Notification as FirebaseNotification;
 
 class DelegationController extends Controller
 {
@@ -23,27 +27,22 @@ class DelegationController extends Controller
     {
         $query = Delegation::with(['requester', 'delegate', 'dutySchedule', 'approver']);
         
-        // Filter by requester if requested
         if ($request->has('requester_id')) {
             $query->where('requester_id', $request->requester_id);
         }
         
-        // Filter by delegate if requested
         if ($request->has('delegate_id')) {
             $query->where('delegate_id', $request->delegate_id);
         }
         
-        // Filter by status if requested
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
         
-        // Filter by duty schedule if requested
         if ($request->has('duty_schedule_id')) {
             $query->where('duty_schedule_id', $request->duty_schedule_id);
         }
         
-        // Pagination
         $perPage = $request->per_page ?? 15;
         $delegations = $query->latest()->paginate($perPage);
         
@@ -62,20 +61,19 @@ class DelegationController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'delegate_id' => 'required|exists:users,id',
-            'duty_schedule_id' => 'required|exists:duty_schedules,id',
+            'delegate_id' => 'required|integer|exists:users,id',
+            'duty_schedule_id' => 'required|integer|exists:duty_schedules,id',
             'delegation_date' => 'required|date',
             'reason' => 'required|string|max:500',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
-        
-        // Check if the duty schedule belongs to the requester
+
         $dutySchedule = DutySchedule::find($request->duty_schedule_id);
         if (!$dutySchedule) {
             return response()->json([
@@ -83,8 +81,7 @@ class DelegationController extends Controller
                 'message' => 'Duty schedule not found',
             ], 404);
         }
-        
-        // Check if the authenticated user is assigned to this duty schedule
+
         $isUserAssigned = $dutySchedule->users()->where('user_id', Auth::id())->exists();
         if (!$isUserAssigned) {
             return response()->json([
@@ -92,40 +89,81 @@ class DelegationController extends Controller
                 'message' => 'You can only delegate your own duty schedules',
             ], 403);
         }
-        
-        // Create delegation
-        $delegation = Delegation::create([
+
+        $attributes = [
             'requester_id' => Auth::id(),
-            'delegate_id' => $request->delegate_id,
-            'duty_schedule_id' => $request->duty_schedule_id,
+            'delegate_id' => (int) $request->delegate_id,
+            'duty_schedule_id' => (int) $request->duty_schedule_id,
             'delegation_date' => $request->delegation_date,
-            'reason' => $request->reason,
-            'status' => 'pending', // Default status
-        ]);
-        
-        // Notify the delegate
-        Notification::create([
-            'user_id' => $request->delegate_id,
-            'title' => 'Permintaan Delegasi',
-            'message' => Auth::user()->name . ' meminta Anda untuk menggantikan tugasnya pada ' . $request->delegation_date,
-            'type' => 'delegation',
-            'reference_id' => $delegation->id,
-            'is_read' => false,
-        ]);
-        
-        // Notify admins
-        $admins = User::where('role', 'admin')->get();
-        foreach ($admins as $admin) {
+            'reason' => (string) $request->reason,
+            'status' => 'pending',
+        ];
+
+        try {
+            $delegation = Delegation::create($attributes);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create delegation: ' . $e->getMessage(),
+            ], 500);
+        }
+
+        try {
+            $formattedDate = \Carbon\Carbon::parse($delegation->delegation_date)
+                ->timezone('Asia/Jakarta')
+                ->format('Y-m-d');
+
             Notification::create([
-                'user_id' => $admin->id,
-                'title' => 'Permintaan Delegasi Baru',
-                'message' => Auth::user()->name . ' meminta delegasi tugas kepada ' . User::find($request->delegate_id)->name,
+                'user_id' => $request->delegate_id,
+                'title' => 'Permintaan Delegasi',
+                'message' => Auth::user()->name . ' meminta Anda untuk menggantikan tugasnya pada ' . $formattedDate,
                 'type' => 'delegation',
                 'reference_id' => $delegation->id,
                 'is_read' => false,
             ]);
+
+            $delegate = User::find($request->delegate_id);
+            if ($delegate->device_token) {
+                $messaging = app(Messaging::class);
+                $message = CloudMessage::withTarget('token', $delegate->device_token)
+                    ->withNotification(FirebaseNotification::create(
+                        'Permintaan Delegasi',
+                        Auth::user()->name . ' meminta Anda untuk menggantikan tugasnya pada ' . $formattedDate
+                    ))
+                    ->withData(['delegation_id' => (string) $delegation->id]);
+                $messaging->send($message);
+            } else {
+            }
+
+            $admins = User::where('role', 'admin')->get();
+            foreach ($admins as $admin) {
+                Notification::create([
+                    'user_id' => $admin->id,
+                    'title' => 'Permintaan Delegasi Baru',
+                    'message' => Auth::user()->name . ' meminta delegasi tugas kepada ' . $delegate->name,
+                    'type' => 'delegation',
+                    'reference_id' => $delegation->id,
+                    'is_read' => false,
+                ]);
+
+                if ($admin->device_token) {
+                    try {
+                        $message = CloudMessage::withTarget('token', $admin->device_token)
+                            ->withNotification(FirebaseNotification::create(
+                                'Permintaan Delegasi Baru',
+                                Auth::user()->name . ' meminta delegasi tugas kepada ' . $delegate->name
+                            ))
+                            ->withData(['delegation_id' => (string) $delegation->id]);
+                        $messaging->send($message);
+                    } catch (\Exception $e) {
+                        
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Delegation request created successfully',
@@ -150,7 +188,6 @@ class DelegationController extends Controller
             ], 404);
         }
         
-        // Check if user is authorized to view this delegation
         $user = Auth::user();
         if ($user->role !== 'admin' && $user->id !== $delegation->requester_id && $user->id !== $delegation->delegate_id) {
             return response()->json([
@@ -183,7 +220,6 @@ class DelegationController extends Controller
             ], 404);
         }
         
-        // Check if user is authorized to update this delegation
         $user = Auth::user();
         if ($user->role !== 'admin' && $user->id !== $delegation->requester_id) {
             return response()->json([
@@ -192,7 +228,6 @@ class DelegationController extends Controller
             ], 403);
         }
         
-        // Only allow updates if status is pending
         if ($delegation->status !== 'pending' && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
@@ -215,13 +250,11 @@ class DelegationController extends Controller
             ], 422);
         }
         
-        // Update fields
         if ($request->has('delegate_id')) {
             $delegation->delegate_id = $request->delegate_id;
         }
         
         if ($request->has('duty_schedule_id')) {
-            // Check if the duty schedule belongs to the requester
             $dutySchedule = DutySchedule::find($request->duty_schedule_id);
             if (!$dutySchedule) {
                 return response()->json([
@@ -230,7 +263,6 @@ class DelegationController extends Controller
                 ], 404);
             }
             
-            // Check if the requester is assigned to this duty schedule
             $isUserAssigned = $dutySchedule->users()->where('user_id', $delegation->requester_id)->exists();
             if (!$isUserAssigned) {
                 return response()->json([
@@ -250,16 +282,13 @@ class DelegationController extends Controller
             $delegation->reason = $request->reason;
         }
         
-        // Only admin can update status
         if ($request->has('status') && $user->role === 'admin') {
             $delegation->status = $request->status;
             
-            // If approving or rejecting, set approver info
             if ($request->status !== 'pending') {
                 $delegation->approved_by = $user->id;
                 $delegation->approved_at = now();
                 
-                // Notify the requester and delegate about the status change
                 Notification::create([
                     'user_id' => $delegation->requester_id,
                     'title' => 'Status Delegasi Diperbarui',
@@ -282,9 +311,7 @@ class DelegationController extends Controller
         
         $delegation->save();
         
-        // If the requester updates the delegation, notify the delegate and admins
         if ($user->id === $delegation->requester_id) {
-            // Notify the delegate
             Notification::create([
                 'user_id' => $delegation->delegate_id,
                 'title' => 'Permintaan Delegasi Diperbarui',
@@ -294,7 +321,6 @@ class DelegationController extends Controller
                 'is_read' => false,
             ]);
             
-            // Notify admins
             $admins = User::where('role', 'admin')->get();
             foreach ($admins as $admin) {
                 Notification::create([
@@ -332,7 +358,6 @@ class DelegationController extends Controller
             ], 404);
         }
         
-        // Check if user is authorized to cancel this delegation
         $user = Auth::user();
         if ($user->role !== 'admin' && $user->id !== $delegation->requester_id) {
             return response()->json([
@@ -341,7 +366,6 @@ class DelegationController extends Controller
             ], 403);
         }
         
-        // Only allow cancellation if status is pending or approved
         if (!in_array($delegation->status, ['pending', 'approved']) && $user->role !== 'admin') {
             return response()->json([
                 'success' => false,
@@ -349,11 +373,9 @@ class DelegationController extends Controller
             ], 403);
         }
         
-        // Update status to cancelled instead of deleting
         $delegation->status = 'cancelled';
         $delegation->save();
         
-        // Notify the delegate
         Notification::create([
             'user_id' => $delegation->delegate_id,
             'title' => 'Delegasi Dibatalkan',
@@ -363,7 +385,6 @@ class DelegationController extends Controller
             'is_read' => false,
         ]);
         
-        // Notify admins
         $admins = User::where('role', 'admin')->get();
         foreach ($admins as $admin) {
             if ($admin->id !== $user->id) {
@@ -400,7 +421,6 @@ class DelegationController extends Controller
                   ->orWhere('delegate_id', $user->id);
             });
         
-        // Filter by role (requester or delegate)
         if ($request->has('role')) {
             if ($request->role === 'requester') {
                 $query->where('requester_id', $user->id);
@@ -409,7 +429,6 @@ class DelegationController extends Controller
             }
         }
         
-        // Filter by status if requested
         if ($request->has('status')) {
             $query->where('status', $request->status);
         }
@@ -436,25 +455,23 @@ class DelegationController extends Controller
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:approved,rejected',
         ]);
-        
+
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'errors' => $validator->errors()
             ], 422);
         }
-        
+
         $delegation = Delegation::find($id);
-        
+
         if (!$delegation) {
             return response()->json([
                 'success' => false,
                 'message' => 'Delegation not found',
             ], 404);
         }
-        
-        // Check if user is authorized to process this delegation
-        // Allow both admin and the delegate to process
+
         $user = Auth::user();
         if ($user->role !== 'admin' && $user->id !== $delegation->delegate_id) {
             return response()->json([
@@ -462,45 +479,93 @@ class DelegationController extends Controller
                 'message' => 'Unauthorized',
             ], 403);
         }
-        
-        // Only allow processing if status is pending
+
         if ($delegation->status !== 'pending') {
             return response()->json([
                 'success' => false,
                 'message' => 'Cannot process delegation that has already been processed',
             ], 403);
         }
-        
+
         $delegation->status = $request->status;
         $delegation->approved_by = $user->id;
         $delegation->approved_at = now();
         $delegation->save();
-        
-        // Notify the requester
+
+        $formattedDate = \Carbon\Carbon::parse($delegation->delegation_date)
+            ->timezone('Asia/Jakarta')
+            ->format('Y-m-d');
+
         Notification::create([
             'user_id' => $delegation->requester_id,
             'title' => 'Status Delegasi Diperbarui',
-            'message' => 'Permintaan delegasi Anda telah ' . ($request->status === 'approved' ? 'disetujui' : 'ditolak') . ' oleh ' . $user->name,
+            'message' => 'Permintaan delegasi Anda pada ' . $formattedDate . ' telah ' . ($request->status === 'approved' ? 'disetujui' : 'ditolak') . ' oleh ' . $user->name,
             'type' => 'delegation',
             'reference_id' => $delegation->id,
             'is_read' => false,
         ]);
-        
-        // Notify admins if the delegate processed the request
+
+        $requester = User::find($delegation->requester_id);
+        if ($requester->device_token) {
+            try {
+                $messaging = app(Messaging::class);
+                $message = CloudMessage::withTarget('token', $requester->device_token)
+                    ->withNotification(FirebaseNotification::create(
+                        'Status Delegasi Diperbarui',
+                        'Permintaan delegasi Anda pada ' . $formattedDate . ' telah ' . ($request->status === 'approved' ? 'disetujui' : 'ditolak') . ' oleh ' . $user->name
+                    ))
+                    ->withData(['delegation_id' => (string) $delegation->id]);
+                $messaging->send($message);
+            } catch (\Exception $e) {
+                
+            }
+        }
+
+        if ($user->id !== $delegation->delegate_id) {
+            $delegate = User::find($delegation->delegate_id);
+            if ($delegate->device_token) {
+                try {
+                    $message = CloudMessage::withTarget('token', $delegate->device_token)
+                        ->withNotification(FirebaseNotification::create(
+                            'Status Delegasi Diperbarui',
+                            'Permintaan delegasi pada ' . $formattedDate . ' telah ' . ($request->status === 'approved' ? 'disetujui' : 'ditolak')
+                        ))
+                        ->withData(['delegation_id' => (string) $delegation->id]);
+                    $messaging->send($message);
+                } catch (\Exception $e) {
+                    
+                }
+            }
+        }
+
         if ($user->id === $delegation->delegate_id) {
             $admins = User::where('role', 'admin')->get();
             foreach ($admins as $admin) {
                 Notification::create([
                     'user_id' => $admin->id,
                     'title' => 'Status Delegasi Diperbarui',
-                    'message' => $user->name . ' telah ' . ($request->status === 'approved' ? 'menyetujui' : 'menolak') . ' permintaan delegasi dari ' . $delegation->requester->name,
+                    'message' => $user->name . ' telah ' . ($request->status === 'approved' ? 'menyetujui' : 'menolak') . ' permintaan delegasi dari ' . $delegation->requester->name . ' pada ' . $formattedDate,
                     'type' => 'delegation',
                     'reference_id' => $delegation->id,
                     'is_read' => false,
                 ]);
+
+                if ($admin->device_token) {
+                    try {
+                        $message = CloudMessage::withTarget('token', $admin->device_token)
+                            ->withNotification(FirebaseNotification::create(
+                                'Status Delegasi Diperbarui',
+                                $user->name . ' telah ' . ($request->status === 'approved' ? 'menyetujui' : 'menolak') . ' permintaan delegasi dari ' . $delegation->requester->name . ' pada ' . $formattedDate
+                            ))
+                            ->withData(['delegation_id' => (string) $delegation->id]);
+                        $messaging->send($message);
+                    } catch (\Exception $e) {
+                        
+                    }
+                }
             }
         }
-        
+
         return response()->json([
             'success' => true,
             'message' => 'Delegation ' . $request->status . ' successfully',

@@ -4,8 +4,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Auth;
 use Exception;
 use Google_Client;
 
@@ -21,23 +20,25 @@ class AuthController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'id_token' => 'required|string',
-            'access_token' => 'nullable|string', 
+            'access_token' => 'nullable|string',
+            'refresh_token' => 'nullable|string', 
+            'device_token' => 'nullable|string', 
         ]);
-       
+    
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
-       
+    
         try {
             $idToken = $request->id_token;
             $accessToken = $request->access_token ?? null;
-           
+        
             $tokenParts = explode(".", $idToken);
-            if(count($tokenParts) >= 2) {
-                $payload = base64_decode(str_replace('_', '/', str_replace('-','+', $tokenParts[1])));
+            if (count($tokenParts) >= 2) {
+                $payload = base64_decode(str_replace('_', '/', str_replace('-', '+', $tokenParts[1])));
                 $userData = json_decode($payload, true);
-               
-                if(!isset($userData['email']) || !isset($userData['sub'])) {
+            
+                if (!isset($userData['email']) || !isset($userData['sub'])) {
                     throw new Exception('Invalid token data');
                 }
                 
@@ -50,34 +51,30 @@ class AuthController extends Controller
                         'error' => 'Email tidak terdaftar di sistem'
                     ], 403);
                 }
+
+                if ($existingUser->role !== 'pengurus') {
+                    return response()->json([
+                        'message' => 'Akses ditolak. Hanya pengurus yang dapat menggunakan aplikasi mobile',
+                        'error' => 'Role tidak memiliki akses'
+                    ], 403);
+                }
                 
                 $tokenData = [
                     'access_token' => $accessToken,
                     'token_type' => 'Bearer',
-                    'expires_in' => 3600, 
+                    'expires_in' => 3600,
                     'created' => time()
                 ];
                 
                 $existingUser->update([
                     'google_id' => $userData['sub'],
-                    'google_token' => json_encode($tokenData)
+                    'google_token' => json_encode($tokenData),
+                    'google_refresh_token' => $request->refresh_token ?? $existingUser->google_refresh_token,
+                    'device_token' => $request->device_token ?? $existingUser->device_token, // Save device_token
                 ]);
-
-                $validator = Validator::make($request->all(), [
-                    'id_token' => 'required|string',
-                    'access_token' => 'nullable|string',
-                    'refresh_token' => 'nullable|string'
-                ]);
-                
-                // Simpan refresh token jika ada
-                if ($request->has('refresh_token')) {
-                    $existingUser->update([
-                        'google_refresh_token' => $request->refresh_token
-                    ]);
-                }
                 
                 $token = $existingUser->createToken('auth_token')->plainTextToken;
-               
+            
                 return response()->json([
                     'message' => 'Login successful',
                     'user' => $existingUser,
@@ -143,16 +140,13 @@ class AuthController extends Controller
                 ], 400);
             }
             
-            // Implementasi refresh token dengan Google API
             $client = new Google_Client();
             $client->setClientId(env('GOOGLE_CLIENT_ID'));
             $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
             
-            // Coba refresh token
             $client->fetchAccessTokenWithRefreshToken($user->google_refresh_token);
             $tokens = $client->getAccessToken();
             
-            // Update token di database
             $user->update([
                 'google_token' => json_encode($tokens)
             ]);
@@ -168,5 +162,21 @@ class AuthController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function updateDeviceToken(Request $request)
+    {
+        $request->validate([
+            'device_token' => 'required|string',
+        ]);
+
+        $user = Auth::user();
+        $user->device_token = $request->device_token;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Device token updated successfully',
+        ]);
     }
 }

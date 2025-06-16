@@ -58,6 +58,13 @@ class AuthController extends Controller
                         'error' => 'Role tidak memiliki akses'
                     ], 403);
                 }
+
+                if ($isAdmin) {
+                    return response()->json([
+                        'message' => 'Admin tidak dapat login melalui aplikasi mobile',
+                        'error' => 'Role admin tidak memiliki akses'
+                    ], 403);
+                }
                 
                 $tokenData = [
                     'access_token' => $accessToken,

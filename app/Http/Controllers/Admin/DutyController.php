@@ -79,15 +79,15 @@ class DutyController extends Controller
                 'data' => [
                     'id' => $schedule->id,
                     'day_of_week' => $schedule->day_of_week,
-                    'start_time' => $schedule->start_time,
-                    'end_time' => $schedule->end_time,
+                    'start_time' => \Carbon\Carbon::parse($schedule->start_time)->format('H:i'),
+                    'end_time' => \Carbon\Carbon::parse($schedule->end_time)->format('H:i'),
                     'location' => $schedule->location,
                     'users' => $schedule->users->map(function ($user) {
                         return [
                             'id' => $user->id,
                             'name' => $user->name,
-                            'start_date' => Carbon::parse($user->pivot->start_date)->format('Y-m-d'),
-                            'end_date' => Carbon::parse($user->pivot->end_date)->format('Y-m-d'),
+                            'start_date' => \Carbon\Carbon::parse($user->pivot->start_date)->format('Y-m-d'),
+                            'end_date' => \Carbon\Carbon::parse($user->pivot->end_date)->format('Y-m-d'),
                         ];
                     })->toArray(),
                 ],
@@ -104,34 +104,37 @@ class DutyController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'day_of_week' => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
-            'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i|after:start_time',
-            'location' => 'required|string|max:255',
-            'users' => 'required|array|min:1',
-            'users.*.id' => 'required|exists:users,id',
-            'users.*.start_date' => 'required|date',
-            'users.*.end_date' => 'required|date|after_or_equal:users.*.start_date',
+            'day_of_week' => 'sometimes|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
+            'start_time' => 'sometimes|date_format:H:i',
+            'end_time' => 'sometimes|date_format:H:i|after:start_time',
+            'location' => 'sometimes|string|max:255',
+            'users' => 'sometimes|array|min:1',
+            'users.*.id' => 'sometimes|exists:users,id',
+            'users.*.start_date' => 'sometimes|date',
+            'users.*.end_date' => 'sometimes|date|after_or_equal:users.*.start_date',
         ]);
 
         try {
             $schedule = DutySchedule::findOrFail($id);
 
             $schedule->update([
-                'day_of_week' => $validated['day_of_week'],
-                'start_time' => $validated['start_time'],
-                'end_time' => $validated['end_time'],
-                'location' => $validated['location'],
+                'day_of_week' => $validated['day_of_week'] ?? $schedule->day_of_week,
+                'start_time' => $validated['start_time'] ?? $schedule->start_time,
+                'end_time' => $validated['end_time'] ?? $schedule->end_time,
+                'location' => $validated['location'] ?? $schedule->location,
             ]);
 
-            $users = collect($validated['users'])->mapWithKeys(function ($user) {
-                return [$user['id'] => [
-                    'start_date' => $user['start_date'],
-                    'end_date' => $user['end_date'],
-                ]];
-            })->toArray();
+            // Hanya update users jika dikirim
+            if (isset($validated['users'])) {
+                $users = collect($validated['users'])->mapWithKeys(function ($user) {
+                    return [$user['id'] => [
+                        'start_date' => $user['start_date'],
+                        'end_date' => $user['end_date'],
+                    ]];
+                })->toArray();
 
-            $schedule->users()->sync($users);
+                $schedule->users()->sync($users);
+            }
 
             return response()->json([
                 'success' => true,

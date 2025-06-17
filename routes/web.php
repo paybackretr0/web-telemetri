@@ -49,7 +49,7 @@ Route::prefix('admin')->middleware(['auth'])->group(function () {
     });
 
     // Delegation routes
-    Route::prefix('delegation')->name('admin.delegations.')->group(function () {
+    Route::prefix('delegation')->name('admin.delegation.')->group(function () {
         Route::get('/', [DelegationController::class, 'index'])->name('index');
         Route::post('/', [DelegationController::class, 'store'])->name('store');
         Route::get('/{id}', [DelegationController::class, 'show'])->name('show');

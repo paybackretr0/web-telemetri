@@ -220,7 +220,7 @@ $artifactId = 'c7f2a4d5-8e3f-4c9b-a8e2-9f7b3c2e8d1a';
                 const formData = new FormData(editForm);
     
                 fetch(editForm.action, {
-                    method: 'PUT',
+                    method: 'POST', 
                     body: formData,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',

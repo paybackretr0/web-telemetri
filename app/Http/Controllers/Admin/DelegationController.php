@@ -27,8 +27,7 @@ class DelegationController extends Controller
             ->latest()
             ->paginate(6);
 
-        // Get users and duty schedules for create modal
-        $users = User::orderBy('name')->get();
+        $users = User::where('role', '!=', 'admin')->orderBy('name')->get();
         $dutySchedules = DutySchedule::orderBy('day_of_week')->get();
 
         return view('admin.delegation.index', compact('delegations', 'search', 'users', 'dutySchedules'));
@@ -79,7 +78,9 @@ class DelegationController extends Controller
                 'duty_schedule_id' => $request->duty_schedule_id,
                 'delegation_date' => $request->delegation_date,
                 'reason' => $request->reason,
-                'status' => 'pending',
+                'status' => 'approved', 
+                'approved_by' => Auth::id(),
+                'approved_at' => now(),
             ]);
 
             DB::commit();
@@ -125,7 +126,7 @@ class DelegationController extends Controller
     public function edit($id)
     {
         $delegation = Delegation::with(['requester', 'delegate', 'dutySchedule'])->findOrFail($id);
-        
+
         if ($delegation->status !== 'pending') {
             return response()->json([
                 'success' => false,
@@ -134,7 +135,14 @@ class DelegationController extends Controller
         }
 
         $users = User::orderBy('name')->get();
-        $dutySchedules = DutySchedule::orderBy('day_of_week')->get();
+        $dutySchedules = DutySchedule::orderBy('day_of_week')->get()->map(function($ds) {
+            return [
+                'id' => $ds->id,
+                'day_of_week' => $ds->day_of_week,
+                'start_time' => \Carbon\Carbon::parse($ds->start_time)->format('H:i'),
+                'end_time' => \Carbon\Carbon::parse($ds->end_time)->format('H:i'),
+            ];
+        })->values();
 
         return response()->json([
             'success' => true,
@@ -176,7 +184,6 @@ class DelegationController extends Controller
             'reason.max' => 'Alasan maksimal 1000 karakter',
         ]);
 
-        // Check if there's already a delegation for the same date and duty schedule (excluding current)
         $existingDelegation = Delegation::where('duty_schedule_id', $request->duty_schedule_id)
             ->where('delegation_date', $request->delegation_date)
             ->where('status', '!=', 'cancelled')
@@ -269,8 +276,6 @@ class DelegationController extends Controller
 
             $delegation->update([
                 'status' => 'rejected',
-                'approved_by' => Auth::id(),
-                'approved_at' => now(),
             ]);
 
             DB::commit();

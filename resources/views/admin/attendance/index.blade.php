@@ -347,6 +347,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = this;
         const submitBtn = document.getElementById('editSubmitBtn');
         const originalText = submitBtn.innerHTML;
+        const type = document.getElementById('edit_type').value;
 
         submitBtn.disabled = true;
         submitBtn.innerHTML = `
@@ -359,9 +360,37 @@ document.addEventListener('DOMContentLoaded', function () {
 
         clearFormErrors('editAttendanceForm');
         const formData = new FormData(form);
+        formData.append('_method', 'PUT');
+
+        // Get form field values
+        const eventDate = document.getElementById('edit_event_date').value;
+        const startTime = document.getElementById('edit_start_time').value;
+        const endTime = document.getElementById('edit_end_time').value;
+        const title = document.getElementById('edit_title').value;
+        const regenerateQr = document.getElementById('regenerate_qr').checked;
+
+        if (type === 'activity') {
+            // For activities, combine event_date and times into full date-time format
+            if (eventDate && startTime && endTime) {
+                formData.set('start_time', `${eventDate} ${startTime}:00`);
+                formData.set('end_time', `${eventDate} ${endTime}:00`);
+            }
+            formData.delete('event_date'); // Not needed for activities
+            formData.set('title', title); // Ensure title is included
+            formData.set('regenerate_qr', regenerateQr ? '1' : '0');
+        } else if (type === 'meeting') {
+            // For meetings, send meeting_date and times separately in H:i format
+            formData.set('meeting_date', eventDate);
+            formData.set('start_time', startTime); // H:i format (e.g., 14:30)
+            formData.set('end_time', endTime); // H:i format (e.g., 15:30)
+            formData.set('title', title); // Ensure title is included
+            formData.delete('event_date'); // Remove event_date
+            // Set regenerate_qr as true/false
+            formData.set('regenerate_qr', regenerateQr ? '1' : '0');
+        }
 
         fetch(form.action, {
-            method: 'PUT',
+            method: 'POST', // Laravel handles _method=PUT
             body: formData,
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -420,7 +449,6 @@ document.addEventListener('DOMContentLoaded', function () {
     window.openAddModal = function() {
         clearFormErrors('addAttendanceForm');
         document.getElementById('addAttendanceForm').reset();
-        document.getElementById('type').value = 'activity';
         document.getElementById('attendance_type_container').classList.remove('hidden');
         document.getElementById('generate_qr_container').classList.remove('hidden');
         const modal = document.getElementById('addAttendanceModal');
@@ -463,9 +491,7 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('edit_id').value = id;
         document.getElementById('edit_type').value = type;
 
-        const attendanceTypeContainer = document.getElementById('edit_attendance_type_container');
         const qrSection = document.getElementById('qr_code_section');
-        attendanceTypeContainer.classList.toggle('hidden', type === 'meeting');
         qrSection.classList.remove('hidden');
 
         fetch("{{ route('admin.attendance.edit.type', ['id' => ':id', 'type' => ':type']) }}".replace(':id', id).replace(':type', type), {
@@ -487,10 +513,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Split datetime into date and time
                 const startDateTime = new Date(data.start_time);
                 const endDateTime = new Date(data.end_time);
-                document.getElementById('edit_event_date').value = formatDateForInput(startDateTime);
-                document.getElementById('edit_start_time').value = formatTimeForInput(startDateTime);
-                document.getElementById('edit_end_time').value = formatTimeForInput(endDateTime);
+                document.getElementById('edit_start_time').value = formatTimeForInput(new Date(data.start_time));
+                document.getElementById('edit_end_time').value = formatTimeForInput(new Date(data.end_time));
 
+                if (type === 'activity') {
+                    document.getElementById('edit_event_date').value = formatDateForInput(new Date(data.start_time));
+                } else if (type === 'meeting') {
+                    document.getElementById('edit_event_date').value = formatDateForInput(new Date(data.meeting_date));
+                }
                 if (type === 'activity' && data.attendance_type_id) {
                     document.getElementById('edit_attendance_type_id').value = data.attendance_type_id;
                 }

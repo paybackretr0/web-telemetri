@@ -17,6 +17,7 @@ class AttendanceType extends Model
     protected $fillable = [
         'name',
         'description',
+        'type',
     ];
 
     /**

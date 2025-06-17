@@ -41,7 +41,7 @@ class AttendanceController extends Controller
             ->paginate(10)
             ->withQueryString();
 
-        $attendanceTypes = AttendanceType::all();
+        $attendanceTypes = AttendanceType::where('name', '!=', 'Piket')->get();
 
         return view('admin.attendance.index', compact('activities', 'meetings', 'attendanceTypes'));
     }
@@ -58,22 +58,13 @@ class AttendanceController extends Controller
             'event_date' => 'required|date',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
-            'type' => 'required|in:activity,meeting',
             'attendance_type_id' => 'required_if:type,activity|exists:attendance_types,id',
             'generate_qr' => 'nullable|boolean',
         ]);
 
         try {
-            // Log input untuk debugging
-            Log::info('Validated input:', $validated);
-
             $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['start_time']);
             $endDateTime = Carbon::createFromFormat('Y-m-d H:i', $validated['event_date'] . ' ' . $validated['end_time']);
-
-            Log::info('Computed times:', [
-                'startDateTime' => $startDateTime->toDateTimeString(),
-                'endDateTime' => $endDateTime->toDateTimeString(),
-            ]);
 
             if ($endDateTime <= $startDateTime) {
                 return response()->json([
@@ -82,7 +73,7 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            if ($validated['type'] === 'activity') {
+            if ($validated['attendance_type_id'] === 'activity') {
                 $activity = Activity::create([
                     'title' => $validated['title'],
                     'description' => $validated['description'],
@@ -96,11 +87,6 @@ class AttendanceController extends Controller
                 // Refresh model untuk memastikan data terbaru
                 $activity->refresh();
 
-                Log::info('Activity created:', [
-                    'id' => $activity->id,
-                    'end_time' => $activity->end_time->toDateTimeString(),
-                ]);
-
                 if ($request->input('generate_qr', false)) {
                     $this->generateQrCode($activity);
                 }
@@ -110,7 +96,6 @@ class AttendanceController extends Controller
                     'message' => 'Kegiatan berhasil ditambahkan.'
                 ]);
             } else {
-                // FIX: Untuk Meeting, gunakan tanggal yang sama untuk meeting_date, start_time dan end_time
                 $meetingDate = Carbon::createFromFormat('Y-m-d', $validated['event_date'])->startOfDay();
                 
                 $meeting = Meeting::create([
@@ -118,19 +103,12 @@ class AttendanceController extends Controller
                     'description' => $validated['description'],
                     'location' => $validated['location'],
                     'meeting_date' => $meetingDate,
-                    'start_time' => $startDateTime, // Menggunakan tanggal lengkap dari event_date
-                    'end_time' => $endDateTime,     // Menggunakan tanggal lengkap dari event_date
+                    'start_time' => $startDateTime, 
+                    'end_time' => $endDateTime,    
                     'created_by' => auth()->id(),
                 ]);
 
                 $meeting->refresh();
-
-                Log::info('Meeting created:', [
-                    'id' => $meeting->id,
-                    'meeting_date' => $meeting->meeting_date->toDateString(),
-                    'start_time' => $meeting->start_time->toDateTimeString(),
-                    'end_time' => $meeting->end_time->toDateTimeString(),
-                ]);
 
                 if ($request->input('generate_qr', false)) {
                     $this->generateQrCode($meeting);
@@ -179,11 +157,12 @@ class AttendanceController extends Controller
             'description' => 'nullable|string',
             'location' => 'sometimes|required|string|max:255',
             'event_date' => 'sometimes|required|date',
-            'start_time' => 'sometimes|required|date_format:H:i',
-            'end_time' => 'sometimes|required|date_format:H:i',
+            'start_time' => 'required|date',
+            'end_time' => 'required|date|after:start_time',
             'attendance_type_id' => 'sometimes|required_if:type,activity|exists:attendance_types,id',
             'regenerate_qr' => 'nullable|boolean',
         ]);
+        
 
         try {
             $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
@@ -192,8 +171,8 @@ class AttendanceController extends Controller
             $startTime = $validated['start_time'] ?? ($type === 'activity' ? $model->start_time->format('H:i') : $model->start_time->format('H:i'));
             $endTime = $validated['end_time'] ?? ($type === 'activity' ? $model->end_time->format('H:i') : $model->end_time->format('H:i'));
 
-            $startDateTime = Carbon::createFromFormat('Y-m-d H:i', $eventDate . ' ' . $startTime);
-            $endDateTime = Carbon::createFromFormat('Y-m-d H:i', $eventDate . ' ' . $endTime);
+            $startDateTime = Carbon::parse($validated['start_time']);
+            $endDateTime = Carbon::parse($validated['end_time']);
 
             if ($endDateTime <= $startDateTime) {
                 return response()->json([
@@ -234,8 +213,8 @@ class AttendanceController extends Controller
                     'description' => $validated['description'],
                     'location' => $validated['location'],
                     'meeting_date' => $meetingDate,
-                    'start_time' => $startDateTime,  // Menggunakan tanggal lengkap
-                    'end_time' => $endDateTime,      // Menggunakan tanggal lengkap
+                    'start_time' => $startDateTime,  
+                    'end_time' => $endDateTime,      
                 ]);
 
                 if ($request->input('regenerate_qr', false)) {
@@ -290,10 +269,8 @@ class AttendanceController extends Controller
     public function showQrCode(Request $request, $id)
     {
         try {
-            // Ambil parameter type dari query string atau request body
             $type = $request->query('type', $request->input('type', 'activity')); // Default ke activity jika tidak ada
 
-            // Pilih model berdasarkan type
             if ($type === 'meeting') {
                 $model = Meeting::with('qrCode')->findOrFail($id);
             } else {
@@ -303,7 +280,6 @@ class AttendanceController extends Controller
             Log::info('Showing QR code for: ' . get_class($model) . ' ID: ' . $id . ', End time: ' . ($model->end_time ? $model->end_time->toDateTimeString() : 'null'));
 
             if (!$model->qrCode) {
-                // Jangan buat QR code baru, kembalikan pesan bahwa QR code belum dibuat
                 return response()->json([
                     'success' => false,
                     'message' => 'QR Code belum dibuat. Silakan edit kegiatan dan centang opsi "Generate QR Code".',
@@ -338,7 +314,6 @@ class AttendanceController extends Controller
             $model = Activity::find($id) ?? Meeting::findOrFail($id);
             
             if ($model->qrCode) {
-                // Delete the old QR code image from storage
                 if ($model->qrCode->file_path && Storage::exists('public/' . $model->qrCode->file_path)) {
                     Storage::delete('public/' . $model->qrCode->file_path);
                 }
@@ -363,51 +338,12 @@ class AttendanceController extends Controller
     }
 
     /**
-     * Download QR code for an activity.
-     */
-    public function downloadQrCode($id)
-    {
-        try {
-            $model = Activity::with('qrCode')->find($id) ?? Meeting::with('qrCode')->findOrFail($id);
-            
-            if (!$model->qrCode) {
-                $qrCode = $this->generateQrCode($model);
-            } else {
-                $qrCode = $model->qrCode;
-            }
-
-            $qrCodeImage = QrCodeGenerator::format('png')
-                ->size(300)
-                ->errorCorrection('H')
-                ->generate($qrCode->code);
-
-            return response($qrCodeImage)
-                ->header('Content-Type', 'image/png')
-                ->header('Content-Disposition', 'attachment; filename="qrcode-' . ($model instanceof Activity ? 'activity' : 'meeting') . '-' . $id . '.png"');
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat mengunduh QR code: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Generate a new QR code for an activity or meeting.
      */
     private function generateQrCode($model)
     {
         try {
             $code = Str::random(10) . '-' . $model->id . '-' . time();
-
-            Log::info('Model end_time details:', [
-                'model_type' => get_class($model),
-                'model_id' => $model->id,
-                'end_time' => $model->end_time ? $model->end_time->toDateTimeString() : 'null',
-                'end_time_type' => gettype($model->end_time),
-                'is_carbon' => $model->end_time instanceof \Carbon\Carbon,
-                'current_time' => Carbon::now()->toDateTimeString()
-            ]);
 
             if (!$model->end_time instanceof \Carbon\Carbon) {
                 Log::warning('Invalid end_time for model: ' . get_class($model) . ' ID: ' . $model->id . '. Using default expiry.');
@@ -420,8 +356,6 @@ class AttendanceController extends Controller
                 Log::warning('Expiry time is in the past for model: ' . get_class($model) . ' ID: ' . $model->id . '. Current: ' . Carbon::now()->toDateTimeString() . ', Expiry: ' . $expiryTime->toDateTimeString() . '. Setting to 1 hour from now.');
                 $expiryTime = Carbon::now()->addHour();
             }
-
-            Log::info('Generating QR code for: ' . get_class($model) . ' ID: ' . $model->id . ', Expiry: ' . $expiryTime->toDateTimeString());
 
             $qrCodeData = [
                 'code' => $code,
@@ -445,13 +379,10 @@ class AttendanceController extends Controller
             $fileName = 'qrcodes/qrcode-' . ($model instanceof Activity ? 'activity' : 'meeting') . '-' . $model->id . '-' . time() . '.png';
 
             Storage::disk('public')->put($fileName, $result->getString());
-            Log::info('QR code saved at: ' . storage_path('app/public/' . $fileName));
-
             $qrCodeData['file_path'] = $fileName;
 
             return qr::create($qrCodeData);
         } catch (\Exception $e) {
-            Log::error('Error generateQrCode: ' . $e->getMessage());
             throw $e;
         }
     }

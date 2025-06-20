@@ -79,27 +79,10 @@ class Activity extends Model
     }
 
     /**
-     * Get the programs for the activity.
-     */
-    public function programs()
-    {
-        return $this->belongsToMany(Program::class, 'program_activities')
-                    ->withTimestamps();
-    }
-
-    /**
      * Get the QR code for the activity.
      */
     public function qrCode()
     {
         return $this->hasOne(QrCode::class);
-    }
-
-    /**
-     * Get the calendar events for the activity.
-     */
-    public function calendarEvents()
-    {
-        return $this->hasMany(ActivityCalendarEvent::class);
     }
 }

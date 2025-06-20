@@ -73,7 +73,7 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            if ($validated['attendance_type_id'] === 'activity') {
+            if ($validated['attendance_type_id'] == 1) {
                 $activity = Activity::create([
                     'title' => $validated['title'],
                     'description' => $validated['description'],
@@ -96,6 +96,19 @@ class AttendanceController extends Controller
                     'message' => 'Kegiatan berhasil ditambahkan.'
                 ]);
             } else {
+                $activity = Activity::create([
+                    'title' => $validated['title'],
+                    'description' => $validated['description'],
+                    'location' => $validated['location'],
+                    'start_time' => $startDateTime,
+                    'end_time' => $endDateTime,
+                    'attendance_type_id' => $validated['attendance_type_id'],
+                    'created_by' => auth()->id(),
+                ]);
+
+                if ($request->input('generate_qr', false)) {
+                    $this->generateQrCode($activity);
+                }
                 $meetingDate = Carbon::createFromFormat('Y-m-d', $validated['event_date'])->startOfDay();
                 
                 $meeting = Meeting::create([

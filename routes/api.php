@@ -31,20 +31,12 @@ Route::post('/refresh-google-token', [AuthController::class, 'refreshGoogleToken
 
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
-    // User profile
-    // Route::get('/user', [UserController::class, 'show']);
-    // Route::put('/user', [UserController::class, 'update']);
     Route::post('/update-device-token', [AuthController::class, 'updateDeviceToken']);
     
     // Absensi routes
     Route::prefix('absensi')->group(function () {
         Route::post('/{code}', [AttendanceController::class, 'scanQrCode']);
     });
-        
-    //     // Absensi Rapat & Kegiatan
-    //     Route::get('/kegiatan', [AbsensiController::class, 'getKegiatanList']);
-    //     Route::post('/kegiatan/scan', [AbsensiController::class, 'scanKegiatan']);
-    //     Route::get('/kegiatan/history', [AbsensiController::class, 'getKegiatanHistory']);
         
     // Aktivitas
     Route::prefix('activities')->group(function () {
@@ -103,24 +95,3 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/all', [HistoryController::class, 'allHistory']);
     });
 });
-
-// Admin routes
-// Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-//     // User management
-//     Route::get('/users', [UserController::class, 'index']);
-//     Route::get('/users/{id}', [UserController::class, 'showUser']);
-//     Route::post('/users', [UserController::class, 'store']);
-//     Route::put('/users/{id}', [UserController::class, 'updateUser']);
-//     Route::delete('/users/{id}', [UserController::class, 'destroy']);
-    
-//     // QR code generation
-//     Route::post('/qrcode/generate', [AbsensiController::class, 'generateQRCode']);
-//     Route::get('/qrcode/{id}', [AbsensiController::class, 'getQRCode']);
-    
-//     // Absensi management
-//     Route::get('/absensi/report', [AbsensiController::class, 'generateReport']);
-//     Route::put('/absensi/{id}/status', [AbsensiController::class, 'updateStatus']);
-    
-//     // Notifications
-//     Route::post('/notifications', [NotificationController::class, 'send']);
-// });

@@ -56,7 +56,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Delegasi
     Route::prefix('delegations')->group(function () {
         Route::get('/my', [DelegationController::class, 'myDelegations']);
-        Route::apiResource('/', DelegationController::class);
+        Route::get('/', [DelegationController::class, 'index']);
+        Route::post('/', [DelegationController::class, 'store']);
+        Route::get('/{id}', [DelegationController::class, 'show']);
+        Route::put('/{id}', [DelegationController::class, 'update']);
+        Route::patch('/{id}', [DelegationController::class, 'update']);
+        Route::delete('/{id}', [DelegationController::class, 'destroy']);
         Route::patch('/process/{id}', [DelegationController::class, 'processDelegations']);
     });
     

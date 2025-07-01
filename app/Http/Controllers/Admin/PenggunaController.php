@@ -32,6 +32,7 @@ class PenggunaController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'role' => ['required', 'string', 'in:pengurus,admin'],
+            'jabatan' => ['nullable', 'string', 'max:255'], 
             'divisi' => ['nullable', 'string', 'max:255'],
             'sub_divisi' => ['nullable', 'string', 'max:255'],
         ]);
@@ -69,6 +70,7 @@ class PenggunaController extends Controller
                 'name' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
                 'role' => ['required', 'string', 'in:pengurus,admin'],
+                'jabatan' => ['nullable', 'string', 'max:255'],
                 'divisi' => ['nullable', 'string', 'max:255'],
                 'sub_divisi' => ['nullable', 'string', 'max:255'],
             ]);

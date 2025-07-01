@@ -88,7 +88,22 @@
                         <div id="edit_role_error" class="text-red-500 text-sm mt-1 hidden"></div>
                     </div>
 
-                    <!-- Divisi Field -->
+                    <div>
+                        <label for="edit_jabatan" class="block text-sm font-semibold text-gray-700 mb-2">
+                            <span class="flex items-center">
+                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                </svg>
+                                Jabatan
+                                <span class="text-gray-400 ml-1">(Opsional)</span>
+                            </span>
+                        </label>
+                        <input type="text" name="jabatan" id="edit_jabatan" 
+                               class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-gray-50 focus:bg-white" 
+                               placeholder="Masukkan jabatan">
+                        <div id="edit_jabatan_error" class="text-red-500 text-sm mt-1 hidden"></div>
+                    </div>
+
                     <div>
                         <label for="edit_divisi" class="block text-sm font-semibold text-gray-700 mb-2">
                             <span class="flex items-center">
@@ -210,6 +225,7 @@
                     document.getElementById('edit_name').value = user.name || '';
                     document.getElementById('edit_email').value = user.email || '';
                     document.getElementById('edit_role').value = user.role || 'pengurus';
+                    document.getElementById('edit_jabatan').value = user.jabatan || '';
                     document.getElementById('edit_divisi').value = user.divisi || '';
                     document.getElementById('edit_sub_divisi').value = user.sub_divisi || '';
                     

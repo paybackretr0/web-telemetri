@@ -42,14 +42,6 @@ class QrCode extends Model
     }
 
     /**
-     * Get the meeting that owns the QR code.
-     */
-    public function meeting()
-    {
-        return $this->belongsTo(Meeting::class);
-    }
-
-    /**
      * Get the user that created the QR code.
      */
     public function creator()

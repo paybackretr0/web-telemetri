@@ -131,22 +131,6 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the meetings created by the user.
-     */
-    public function createdMeetings()
-    {
-        return $this->hasMany(Meeting::class, 'created_by');
-    }
-
-    /**
-     * Get the user's meeting attendances.
-     */
-    public function meetingAttendances()
-    {
-        return $this->hasMany(MeetingAttendance::class);
-    }
-
-    /**
      * Get the user's duty schedules.
      */
     public function dutySchedules()

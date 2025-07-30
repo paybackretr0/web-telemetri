@@ -3,15 +3,14 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\MeetingAttendance;
 use App\Models\QrCode;
 use App\Models\Activity;
-use App\Models\Meeting;
 use App\Models\UserDutySchedule;
 use App\Models\Delegation;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 class AttendanceController extends Controller
 {
@@ -19,279 +18,140 @@ class AttendanceController extends Controller
     {
         try {
             $qrcode = QrCode::where('code', $code)->firstOrFail();
+            $currentTime = Carbon::now('Asia/Jakarta');
 
-            if ($qrcode->expiry_time < Carbon::now('Asia/Jakarta')) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'QR Code telah kadaluarsa.'
-                ], 400);
+            if ($qrcode->expiry_time < $currentTime) {
+                return response()->json(['success' => false, 'message' => 'QR Code telah kadaluarsa.'], 400);
             }
 
             $userId = auth()->id();
             $latitude = $request->input('latitude');
             $longitude = $request->input('longitude');
-            $currentDate = Carbon::today('Asia/Jakarta');
-            $currentTime = Carbon::now('Asia/Jakarta');
 
-            $dayMapping = [
-                'Monday' => 'Senin',
-                'Tuesday' => 'Selasa',
-                'Wednesday' => 'Rabu',
-                'Thursday' => 'Kamis',
-                'Friday' => 'Jumat',
-                'Saturday' => 'Sabtu',
-                'Sunday' => 'Minggu',
-            ];
-            $currentDayOfWeek = $dayMapping[$currentDate->englishDayOfWeek] ?? $currentDate->englishDayOfWeek;
-
-            if ($qrcode->type === 'duty') {
-                if (!$latitude || !$longitude) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Koordinat lokasi diperlukan untuk absen piket.'
-                    ], 400);
-                }
-
-                $allowedLocations = config('duty_locations');
-
-                $isValidLocation = false;
-                foreach ($allowedLocations as $location) {
-                    $distance = $this->calculateDistance(
-                        $latitude,
-                        $longitude,
-                        $location['latitude'],
-                        $location['longitude']
-                    );
-
-                    if ($distance <= $location['radius']) {
-                        $isValidLocation = true;
-                        break;
-                    }
-                }
-
-                if (!$isValidLocation) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Anda tidak berada di lokasi piket yang diizinkan.'
-                    ], 400);
-                }
-
-                $isScheduled = UserDutySchedule::where('user_id', $userId)
-                    ->whereHas('dutySchedule', function ($query) use ($currentDayOfWeek) {
-                        $query->where('day_of_week', $currentDayOfWeek);
-                    })
-                    ->where('start_date', '<=', $currentDate)
-                    ->where('end_date', '>=', $currentDate)
-                    ->exists();
-
-                $isDelegated = Delegation::where('delegate_id', $userId)
-                    ->where('delegation_date', $currentDate)
-                    ->where('status', 'approved')
-                    ->exists();
-
-                if (!$isScheduled && !$isDelegated) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Bukan jadwal piket Anda.'
-                    ], 400);
-                }
-            }
-
-            if ($qrcode->type === 'meeting') {
-                $meeting = Meeting::find($qrcode->meeting_id);
-                if (!$meeting) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Rapat tidak ditemukan.'
-                    ], 404);
-                }
-
-                if (!$meeting->start_time || !$meeting->end_time) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Waktu rapat tidak tersedia.'
-                    ], 400);
-                }
-
-                $meetingDateTimeStart = Carbon::parse($meeting->start_time, 'Asia/Jakarta');
-                $meetingDateTimeEnd = Carbon::parse($meeting->end_time, 'Asia/Jakarta');
-
-                if ($currentTime->lt($meetingDateTimeStart)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Belum masuk waktu rapat.'
-                    ], 400);
-                }
-
-                if ($currentTime->gt($meetingDateTimeEnd)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Waktu rapat telah berakhir.'
-                    ], 400);
-                }
-
-                $attendance = MeetingAttendance::where('user_id', $userId)
-                    ->where('meeting_id', $qrcode->meeting_id)
-                    ->where('check_in_time', '>=', Carbon::today('Asia/Jakarta'))
-                    ->where('check_in_time', '<=', Carbon::today('Asia/Jakarta')->endOfDay())
-                    ->first();
-
-                if ($attendance) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Sudah mengambil presensi untuk rapat ini.'
-                    ], 400);
-                }
-
-                $attendance = MeetingAttendance::create([
-                    'user_id' => $userId,
-                    'meeting_id' => $qrcode->meeting_id,
-                    'status' => 'hadir',
-                    'check_in_time' => $currentTime,
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Check-in rapat berhasil.',
-                    'data' => [
-                        'id' => $attendance->id,
-                        'user_id' => $attendance->user_id,
-                        'meeting_id' => $attendance->meeting_id,
-                        'status' => $attendance->status,
-                        'check_in_time' => $attendance->check_in_time->toIso8601String(),
-                    ]
-                ]);
-            } else {
-                if ($qrcode->type === 'activity') {
-                    $activity = Activity::find($qrcode->activity_id);
-                    if (!$activity) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Kegiatan tidak ditemukan.'
-                        ], 404);
+            switch ($qrcode->type) {
+                case 'activity': 
+                    $event = Activity::find($qrcode->activity_id);
+                        
+                    if (!$event) {
+                        return response()->json(['success' => false, 'message' => ucfirst($qrcode->type) . ' tidak ditemukan.'], 404);
                     }
 
-                    if (!$activity->start_time || !$activity->end_time) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Waktu kegiatan tidak tersedia.'
-                        ], 400);
+                    if ($currentTime->isBefore($event->start_time) || $currentTime->isAfter($event->end_time)) {
+                        return response()->json(['success' => false, 'message' => 'Di luar waktu presensi yang ditentukan.'], 400);
                     }
 
-                    $activityDateTimeStart = Carbon::parse($activity->start_time, 'Asia/Jakarta');
-                    $activityDateTimeEnd = Carbon::parse($activity->end_time, 'Asia/Jakarta');
+                    $attendance = Attendance::where('user_id', $userId)
+                        ->when($qrcode->type === 'activity', fn($q) => $q->where('activity_id', $qrcode->activity_id))
+                        ->when($qrcode->type === 'meeting', fn($q) => $q->where('meeting_id', $qrcode->meeting_id))
+                        ->first();
 
-                    if ($currentTime->lt($activityDateTimeStart)) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Belum masuk waktu kegiatan.'
-                        ], 400);
+                    if (!$attendance) {
+                        return response()->json(['success' => false, 'message' => 'Anda tidak terdaftar dalam presensi ini.'], 404);
                     }
 
-                    if ($currentTime->gt($activityDateTimeEnd)) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Waktu kegiatan telah berakhir.'
-                        ], 400);
-                    }
-                }
-
-                $attendance = Attendance::where('user_id', $userId)
-                    ->where('check_in_time', '>=', Carbon::today('Asia/Jakarta'))
-                    ->where('check_in_time', '<=', Carbon::today('Asia/Jakarta')->endOfDay())
-                    ->whereNull('check_out_time')
-                    ->when($qrcode->type === 'activity', function ($query) use ($qrcode) {
-                        return $query->where('activity_id', $qrcode->activity_id);
-                    })
-                    ->when($qrcode->type === 'duty', function ($query) {
-                        return $query->whereNull('activity_id')->whereNull('meeting_id');
-                    })
-                    ->first();
-
-                $attendanceData = [
-                    'user_id' => $userId,
-                    'status' => 'hadir',
-                    'check_in_time' => $currentTime,
-                    'check_in_location' => $request->input('location', 'Unknown'),
-                    'check_in_latitude' => $latitude,
-                    'check_in_longitude' => $longitude,
-                    'verified_by' => $qrcode->created_by,
-                ];
-
-                if ($qrcode->type === 'activity') {
-                    $attendanceData['activity_id'] = $qrcode->activity_id;
-                }
-
-                if (!$attendance) {
-                    $attendance = Attendance::create($attendanceData);
-
-                    return response()->json([
-                        'success' => true,
-                        'message' => 'Check-in berhasil.',
-                        'data' => $attendance
-                    ]);
-                } else {
-                    if ($qrcode->type === 'activity') {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Sudah Ambil Presensi.',
-                        ], 400);
-                    }
-
-                    $checkInTime = Carbon::parse($attendance->check_in_time, 'Asia/Jakarta');
-                    $minutesDifference = $checkInTime->diffInMinutes($currentTime, false);
-
-                    if ($minutesDifference < 120) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Check-out tidak dapat dilakukan. Harus menunggu minimal 2 jam setelah check-in.'
-                        ], 400);
-                    }
-
-                    if ($qrcode->type === 'duty') {
-                        $isValidLocation = false;
-                        foreach ($allowedLocations as $location) {
-                            $distance = $this->calculateDistance(
-                                $latitude,
-                                $longitude,
-                                $location['latitude'],
-                                $location['longitude']
-                            );
-
-                            if ($distance <= $location['radius']) {
-                                $isValidLocation = true;
-                                break;
-                            }
-                        }
-
-                        if (!$isValidLocation) {
-                            return response()->json([
-                                'success' => false,
-                                'message' => 'Anda tidak berada di lokasi piket yang diizinkan untuk check-out.'
-                            ], 400);
-                        }
+                    if ($attendance->status === 'hadir') {
+                        return response()->json(['success' => false, 'message' => 'Anda sudah melakukan presensi.'], 400);
                     }
 
                     $attendance->update([
-                        'check_out_time' => $currentTime,
-                        'check_out_location' => $request->input('location', 'Unknown'),
-                        'check_out_latitude' => $latitude,
-                        'check_out_longitude' => $longitude
+                        'status' => 'hadir',
+                        'check_in_time' => $currentTime,
+                        'check_in_location' => $request->input('location', 'Unknown'),
+                        'check_in_latitude' => $latitude,
+                        'check_in_longitude' => $longitude,
+                        'verified_by' => $qrcode->created_by,
                     ]);
 
                     return response()->json([
                         'success' => true,
-                        'message' => 'Check-out berhasil.',
-                        'data' => $attendance
+                        'message' => 'Presensi berhasil diambil.',
+                        'data' => $attendance,
                     ]);
-                }
+
+                    break; 
+
+                case 'duty':
+                    $currentDate = Carbon::today('Asia/Jakarta');
+                    
+                    $existingAttendance = Attendance::where('user_id', $userId)
+                        ->whereNull('activity_id')->whereNull('meeting_id') 
+                        ->whereDate('check_in_time', $currentDate)
+                        ->first();
+                    
+                    if (!$latitude || !$longitude) {
+                        return response()->json(['success' => false, 'message' => 'Koordinat lokasi diperlukan untuk absen piket.'], 400);
+                    }
+                    $allowedLocations = config('duty_locations');
+                    $isValidLocation = false;
+                    foreach ($allowedLocations as $location) {
+                        if ($this->calculateDistance($latitude, $longitude, $location['latitude'], $location['longitude']) <= $location['radius']) {
+                            $isValidLocation = true;
+                            break;
+                        }
+                    }
+                    if (!$isValidLocation) {
+                        return response()->json(['success' => false, 'message' => 'Anda tidak berada di lokasi piket yang diizinkan.'], 400);
+                    }
+
+                    if (!$existingAttendance) {
+                        $dayMapping = ['Monday' => 'Senin', 'Tuesday' => 'Selasa', 'Wednesday' => 'Rabu', 'Thursday' => 'Kamis', 'Friday' => 'Jumat', 'Saturday' => 'Sabtu', 'Sunday' => 'Minggu'];
+                        $currentDayOfWeek = $dayMapping[$currentDate->englishDayOfWeek] ?? $currentDate->englishDayOfWeek;
+                        
+                        $isScheduled = UserDutySchedule::where('user_id', $userId)
+                            ->whereHas('dutySchedule', fn($q) => $q->where('day_of_week', $currentDayOfWeek))
+                            ->where('start_date', '<=', $currentDate)->where('end_date', '>=', $currentDate)
+                            ->exists();
+
+                        $isDelegated = Delegation::where('delegate_id', $userId)
+                            ->where('delegation_date', $currentDate)->where('status', 'approved')
+                            ->exists();
+
+                        if (!$isScheduled && !$isDelegated) {
+                            return response()->json(['success' => false, 'message' => 'Bukan jadwal piket Anda.'], 400);
+                        }
+                        
+                        $newAttendance = Attendance::create([
+                            'user_id' => $userId,
+                            'status' => 'hadir',
+                            'check_in_time' => $currentTime,
+                            'check_in_location' => $request->input('location', 'Unknown'),
+                            'check_in_latitude' => $latitude,
+                            'check_in_longitude' => $longitude,
+                            'verified_by' => $qrcode->created_by,
+                        ]);
+
+                        return response()->json(['success' => true, 'message' => 'Check-in piket berhasil.', 'data' => $newAttendance]);
+                    } 
+                    else {
+                        if ($existingAttendance->check_out_time) {
+                            return response()->json(['success' => false, 'message' => 'Anda sudah melakukan check-out hari ini.'], 400);
+                        }
+
+                        $minutesDifference = $existingAttendance->check_in_time->diffInMinutes($currentTime);
+                        if ($minutesDifference < 120) {
+                            return response()->json(['success' => false, 'message' => 'Check-out belum bisa dilakukan. Minimal 2 jam setelah check-in.'], 400);
+                        }
+
+                        $existingAttendance->update([
+                            'check_out_time' => $currentTime,
+                            'check_out_location' => $request->input('location', 'Unknown'),
+                            'check_out_latitude' => $latitude,
+                            'check_out_longitude' => $longitude,
+                        ]);
+                        
+                        return response()->json(['success' => true, 'message' => 'Check-out piket berhasil.', 'data' => $existingAttendance]);
+                    }
+                    
+                    break; 
+
+                default:
+                    return response()->json(['success' => false, 'message' => 'Tipe QR Code tidak valid.'], 400);
             }
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['success' => false, 'message' => 'QR Code tidak ditemukan atau Anda tidak terdaftar.'], 404);
         } catch (\Exception $e) {
-            Log::error('Error scanning QR: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
-            ], 500);
+            Log::error('Error scanning QR: ' . $e->getMessage() . ' on line ' . $e->getLine() . ' in file ' . $e->getFile());
+            return response()->json(['success' => false, 'message' => 'Terjadi kesalahan pada server.'], 500);
         }
     }
 

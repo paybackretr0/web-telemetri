@@ -96,8 +96,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::prefix('history')->group(function () {
-        Route::get('/activities', [HistoryController::class, 'activityHistory']);
-        Route::get('/meetings', [HistoryController::class, 'meetingHistory']);
-        Route::get('/all', [HistoryController::class, 'allHistory']);
+        Route::get('/all', [HistoryController::class, 'index']);
     });
 });

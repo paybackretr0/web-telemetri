@@ -4,142 +4,79 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\MeetingAttendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class HistoryController extends Controller
 {
     /**
-     * Menampilkan riwayat kehadiran aktivitas pengguna
+     * Menampilkan semua riwayat kehadiran pengguna (aktivitas dan piket)
+     * dengan filter dan pagination yang efisien.
      *
      * @return \Illuminate\Http\JsonResponse
      */
-    public function activityHistory(Request $request)
+    public function index(Request $request)
     {
         $user = Auth::user();
-        
-        $attendances = Attendance::with(['activity', 'activity.attendanceType'])
-            ->where('user_id', $user->id)
-            ->when($request->has('start_date') && $request->has('end_date'), function($query) use ($request) {
-                return $query->whereHas('activity', function($q) use ($request) {
-                    $q->whereBetween('date', [$request->start_date, $request->end_date]);
+
+        $query = Attendance::with([
+                'activity.attendanceType',
+            ])
+            ->where('user_id', $user->id);
+
+        if ($request->has('start_date') && $request->has('end_date')) {
+            $startDate = $request->start_date;
+            $endDate = $request->end_date;
+
+            $query->where(function ($q) use ($startDate, $endDate) {
+                $q->whereHas('activity', function ($subq) use ($startDate, $endDate) {
+                    $subq->whereDate('start_time', '>=', $startDate)
+                         ->whereDate('start_time', '<=', $endDate);
+                })
+                ->orWhere(function ($subq) use ($startDate, $endDate) {
+                    $subq->whereNull('activity_id')
+                         ->whereBetween('check_in_time', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
                 });
-            })
-            ->latest()
-            ->paginate(10);
-            
-        return response()->json([
-            'success' => true,
-            'data' => $attendances,
-            'message' => 'Riwayat kehadiran aktivitas berhasil diambil'
-        ]);
-    }
-    
-    /**
-     * Menampilkan riwayat kehadiran rapat pengguna
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function meetingHistory(Request $request)
-    {
-        $user = Auth::user();
-        
-        $meetingAttendances = MeetingAttendance::with('meeting')
-            ->where('user_id', $user->id)
-            ->when($request->has('start_date') && $request->has('end_date'), function($query) use ($request) {
-                return $query->whereHas('meeting', function($q) use ($request) {
-                    $q->whereBetween('meeting_date', [$request->start_date, $request->end_date]);
-                });
-            })
-            ->latest()
-            ->paginate(10);
-            
-        return response()->json([
-            'success' => true,
-            'data' => $meetingAttendances,
-            'message' => 'Riwayat kehadiran rapat berhasil diambil'
-        ]);
-    }
-    
-    /**
-     * Menampilkan semua riwayat kehadiran pengguna (aktivitas dan rapat)
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function allHistory(Request $request)
-    {
-        $user = Auth::user();
-        
-        // Ambil riwayat aktivitas
-        $activities = Attendance::with(['activity', 'activity.attendanceType'])
-            ->where('user_id', $user->id)
-            ->when($request->has('start_date') && $request->has('end_date'), function($query) use ($request) {
-                return $query->whereHas('activity', function($q) use ($request) {
-                    $q->whereBetween('date', [$request->start_date, $request->end_date]);
-                });
-            })
-            ->get()
-            ->map(function($item) {
-                return [
-                    'id' => $item->id,
-                    'type' => 'activity',
-                    'title' => $item->activity->title ?? 'Piket Mingguan',
-                    'date' => $item->activity->date ?? $item->created_at->format('Y-m-d'),
-                    'status' => $item->status,
-                    'check_in_time' => $item->check_in_time,
-                    'check_out_time' => $item->check_out_time,
-                    'activity_type' => $item->activity->attendanceType->name ?? 'Piket',
-                    'created_at' => $item->created_at
-                ];
             });
-            
-        // Ambil riwayat rapat
-        $meetings = MeetingAttendance::with('meeting')
-            ->where('user_id', $user->id)
-            ->when($request->has('start_date') && $request->has('end_date'), function($query) use ($request) {
-                return $query->whereHas('meeting', function($q) use ($request) {
-                    $q->whereBetween('meeting_date', [$request->start_date, $request->end_date]);
-                });
-            })
-            ->get()
-            ->map(function($item) {
-                return [
-                    'id' => $item->id,
-                    'type' => 'meeting',
-                    'title' => $item->meeting->title ?? 'Rapat',
-                    'date' => $item->meeting->meeting_date ?? $item->created_at->format('Y-m-d'),
-                    'status' => $item->status,
-                    'check_in_time' => $item->check_in_time,
-                    'check_out_time' => null,
-                    'activity_type' => 'Rapat',
-                    'created_at' => $item->created_at
-                ];
-            });
-            
-        // Gabungkan dan urutkan berdasarkan tanggal terbaru
-        $allHistory = $activities->concat($meetings)
-            ->sortByDesc('created_at')
-            ->values();
-            
-        // Pagination manual
-        $page = $request->get('page', 1);
-        $perPage = 10;
-        $total = $allHistory->count();
-        
-        $paginatedItems = $allHistory->forPage($page, $perPage);
-        
+        }
+
+        $query->leftJoin('activities', 'attendances.activity_id', '=', 'activities.id')
+              ->select('attendances.*', DB::raw('COALESCE(activities.start_time, attendances.check_in_time) as event_date'))
+              ->orderBy('event_date', 'desc');
+
+        $history = $query->paginate(10);
+
+        $history->getCollection()->transform(function ($item) {
+            $isActivity = !is_null($item->activity_id) && $item->activity;
+
+            if ($isActivity) {
+                $type = 'activity';
+                $title = $item->activity->title;
+                $date = $item->activity->start_time->format('Y-m-d');
+                $activityType = $item->activity->attendanceType->name ?? 'Kegiatan';
+            } else { 
+                $type = 'duty';
+                $title = 'Piket Jaga';
+                $date = $item->check_in_time->format('Y-m-d');
+                $activityType = 'Piket';
+            }
+
+            return [
+                'id' => $item->id,
+                'type' => $type,
+                'title' => $title,
+                'date' => $date,
+                'status' => $item->status,
+                'check_in_time' => optional($item->check_in_time)->toIso8601String(),
+                'check_out_time' => optional($item->check_out_time)->toIso8601String(),
+                'activity_type' => $activityType,
+            ];
+        });
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'current_page' => (int)$page,
-                'data' => $paginatedItems->values()->all(),
-                'from' => (($page - 1) * $perPage) + 1,
-                'last_page' => ceil($total / $perPage),
-                'per_page' => $perPage,
-                'to' => min($page * $perPage, $total),
-                'total' => $total,
-            ],
+            'data' => $history,
             'message' => 'Semua riwayat kehadiran berhasil diambil'
         ]);
     }

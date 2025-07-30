@@ -125,94 +125,89 @@
         </div>
 
         <div x-show="activeTab === 'meetings'" class="mt-6">
-            <x-table :search="true">
-                <x-slot name="header">
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider rounded-tl-lg">Judul</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Tipe</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Lokasi</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Waktu</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">QR Code</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Dibuat Oleh</th>
-                    <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider rounded-tr-lg">Aksi</th>
-                </x-slot>
+        <x-table :search="true">
+            <x-slot name="header">
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider rounded-tl-lg">Judul</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Tipe</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Lokasi</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Waktu</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">QR Code</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider">Dibuat Oleh</th>
+                <th scope="col" class="px-6 py-3 bg-blue-50 text-left text-xs font-medium text-blue-700 uppercase tracking-wider rounded-tr-lg">Aksi</th>
+            </x-slot>
 
-                @forelse ($meetings as $meeting)
-                    <tr class="bg-white border-b border-gray-100 hover:bg-blue-50/50 transition duration-150 ease-in-out" data-id="{{ $meeting->id }}" data-type="meeting">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $meeting->title }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500"><span class="px-2 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-lg">Rapat</span></td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->location }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->meeting_date->format('d M Y')  }} {{ $meeting->start_time->format('H:i') }} - {{ $meeting->end_time->format('H:i') }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            @if($meeting->qrCode)
-                                <button onclick="viewQrCode({{ $meeting->id }}, 'meeting')" class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150 group">
-                                    <svg class="w-4 h-4 mr-2 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
-                                    </svg>
-                                    <span class="group-hover:text-blue-700">Lihat QR</span>
-                                </button>
-                            @else
-                                -
-                            @endif
-                        </td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->creator->name }}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div class="flex items-center space-x-3">
-                                <button onclick="openEditModal({{ $meeting->id }}, 'meeting')" class="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors duration-150 group">
-                                    <svg class="w-4 h-4 mr-2 group-hover:text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                                    </svg>
-                                    <span class="group-hover:text-green-700">Edit</span>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-400">
-                            <div class="flex flex-col items-center justify-center py-10">
-                                <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <p class="text-lg">Tidak ada data rapat yang tersedia.</p>
-                            </div>
-                        </td>
-                    </tr>
-                @endforelse
-                @if ($meetings->hasPages())
+            {{-- Ubah $meetings menjadi $meeting --}}
+            @forelse ($meetings as $meeting)
+                {{-- Karena $meetings sekarang dari model Activity, kita gunakan properti Activity --}}
+                <tr class="bg-white border-b border-gray-100 hover:bg-blue-50/50 transition duration-150 ease-in-out" data-id="{{ $meeting->id }}" data-type="activity">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $meeting->title }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <span class="px-2 py-1 text-xs font-semibold bg-purple-100 text-purple-700 rounded-lg">
+                            {{-- Ambil nama tipe dari relasi --}}
+                            {{ $meeting->attendanceType->name }}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->location }}</td>
+                    {{-- Format waktu sekarang sama dengan format di 'activities' --}}
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->start_time->format('d M Y H:i') }} - {{ $meeting->end_time->format('H:i') }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        @if($meeting->qrCode)
+                            {{-- Kirim 'activity' sebagai tipe karena sumber datanya sama --}}
+                            <button onclick="viewQrCode({{ $meeting->id }}, 'activity')" class="inline-flex items-center px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150 group">
+                                <svg class="w-4 h-4 mr-2 group-hover:text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                <span class="group-hover:text-blue-700">Lihat QR</span>
+                            </button>
+                        @else
+                            -
+                        @endif
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $meeting->creator->name }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex items-center space-x-3">
+                            <button onclick="openEditModal({{ $meeting->id }}, 'activity')" class="inline-flex items-center px-3 py-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition-colors duration-150 group">
+                                <svg class="w-4 h-4 mr-2 group-hover:text-green-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                <span class="group-hover:text-green-700">Edit</span>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="7" class="px-6 py-4 text-center text-gray-400">
+                        <div class="flex flex-col items-center justify-center py-10">
+                            <svg class="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <p class="text-lg">Tidak ada data rapat yang tersedia.</p>
+                        </div>
+                    </td>
+                </tr>
+            @endforelse
+            
+            {{-- Pastikan pagination juga menggunakan variabel $meetings --}}
+            @if ($meetings->hasPages())
                 <x-slot name="pagination">
+                    {{-- Kode pagination Anda bisa disalin ke sini, ganti $activities menjadi $meetings --}}
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             @if (!$meetings->onFirstPage())
                                 <a href="{{ $meetings->previousPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
-                                    <span class="sr-only">Previous</span>
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                                    </svg>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
                                 </a>
                             @endif
-                            
-                            <span class="text-sm text-gray-700">
-                                Halaman {{ $meetings->currentPage() }} dari {{ $meetings->lastPage() }}
-                            </span>
-                            
+                            <span class="text-sm text-gray-700">Halaman {{ $meetings->currentPage() }} dari {{ $meetings->lastPage() }}</span>
                             @if ($meetings->hasMorePages())
                                 <a href="{{ $meetings->nextPageUrl() }}" class="px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors duration-150">
-                                    <span class="sr-only">Next</span>
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                                    </svg>
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                 </a>
                             @endif
                         </div>
-                        
                         <div class="text-sm text-gray-600">
                             Menampilkan {{ $meetings->firstItem() ?? 0 }} - {{ $meetings->lastItem() ?? 0 }} dari {{ $meetings->total() }} data
                         </div>
                     </div>
                 </x-slot>
             @endif
-            </x-table>
-        </div>
+        </x-table>
+    </div>
     </div>
 
     <!-- QR Code Modal -->

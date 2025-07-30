@@ -17,7 +17,6 @@ class Attendance extends Model
     protected $fillable = [
         'user_id',
         'activity_id',
-        'meeting_id',
         'status',
         'check_in_time',
         'check_in_location',
@@ -68,11 +67,4 @@ class Attendance extends Model
         return $this->belongsTo(User::class, 'verified_by');
     }
 
-    /**
-     * Get the meeting that owns the attendance.
-     */
-    public function meeting()
-    {
-        return $this->belongsTo(Meeting::class);
-    }
 }

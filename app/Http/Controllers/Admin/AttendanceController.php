@@ -7,6 +7,8 @@ use App\Models\Activity;
 use App\Models\Meeting;
 use App\Models\QrCode as qr;
 use App\Models\AttendanceType;
+use App\Models\User;
+use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
@@ -23,27 +25,63 @@ class AttendanceController extends Controller
      */
     public function index(Request $request)
     {
+        $meetingTypeId = AttendanceType::where('name', 'Rapat')->value('id');
+
         $activities = Activity::with(['qrCode', 'creator', 'attendanceType'])
+            ->where(function ($query) use ($meetingTypeId) {
+                if ($meetingTypeId) {
+                    $query->where('attendance_type_id', '!=', $meetingTypeId);
+                }
+            })
             ->when($request->search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%");
             })
             ->latest()
-            ->paginate(10)
+            ->paginate(10, ['*'], 'activities_page') 
             ->withQueryString();
 
-        $meetings = Meeting::with(['creator'])
+        $meetings = Activity::with(['qrCode', 'creator', 'attendanceType'])
+            ->where('attendance_type_id', $meetingTypeId)
             ->when($request->search, function ($query, $search) {
                 $query->where('title', 'like', "%{$search}%")
                     ->orWhere('location', 'like', "%{$search}%");
             })
             ->latest()
-            ->paginate(10)
+            ->paginate(10, ['*'], 'meetings_page') 
             ->withQueryString();
 
         $attendanceTypes = AttendanceType::where('name', '!=', 'Piket')->get();
 
         return view('admin.attendance.index', compact('activities', 'meetings', 'attendanceTypes'));
+    }
+
+    /**
+     * Create initial attendance records for all users for a given event.
+     */
+    private function createInitialAttendanceRecords($event)
+    {
+        $isActivity = $event instanceof Activity;
+
+        $users = User::where('role', '!=', 'admin')->get();
+
+        $attendanceData = [];
+        $now = now();
+
+        foreach ($users as $user) {
+            $attendanceData[] = [
+                'user_id'       => $user->id,
+                'activity_id'   => $isActivity ? $event->id : null,
+                'meeting_id'    => !$isActivity ? $event->id : null,
+                'status'        => 'alfa', 
+                'created_at'    => $now,
+                'updated_at'    => $now,
+            ];
+        }
+
+        if (!empty($attendanceData)) {
+            Attendance::insert($attendanceData);
+        }
     }
 
     /**
@@ -73,65 +111,29 @@ class AttendanceController extends Controller
                 ], 422);
             }
 
-            if ($validated['attendance_type_id'] == 1) {
-                $activity = Activity::create([
-                    'title' => $validated['title'],
-                    'description' => $validated['description'],
-                    'location' => $validated['location'],
-                    'start_time' => $startDateTime,
-                    'end_time' => $endDateTime,
-                    'attendance_type_id' => $validated['attendance_type_id'],
-                    'created_by' => auth()->id(),
-                ]);
+            $activity = Activity::create([
+                'title' => $validated['title'],
+                'description' => $validated['description'],
+                'location' => $validated['location'],
+                'start_time' => $startDateTime,
+                'end_time' => $endDateTime,
+                'attendance_type_id' => $validated['attendance_type_id'],
+                'created_by' => auth()->id(),
+            ]);
 
-                // Refresh model untuk memastikan data terbaru
-                $activity->refresh();
+            $activity->refresh();
 
-                if ($request->input('generate_qr', false)) {
-                    $this->generateQrCode($activity);
-                }
+            $this->createInitialAttendanceRecords($activity);
 
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Kegiatan berhasil ditambahkan.'
-                ]);
-            } else {
-                $activity = Activity::create([
-                    'title' => $validated['title'],
-                    'description' => $validated['description'],
-                    'location' => $validated['location'],
-                    'start_time' => $startDateTime,
-                    'end_time' => $endDateTime,
-                    'attendance_type_id' => $validated['attendance_type_id'],
-                    'created_by' => auth()->id(),
-                ]);
-
-                if ($request->input('generate_qr', false)) {
-                    $this->generateQrCode($activity);
-                }
-                $meetingDate = Carbon::createFromFormat('Y-m-d', $validated['event_date'])->startOfDay();
-                
-                $meeting = Meeting::create([
-                    'title' => $validated['title'],
-                    'description' => $validated['description'],
-                    'location' => $validated['location'],
-                    'meeting_date' => $meetingDate,
-                    'start_time' => $startDateTime, 
-                    'end_time' => $endDateTime,    
-                    'created_by' => auth()->id(),
-                ]);
-
-                $meeting->refresh();
-
-                if ($request->input('generate_qr', false)) {
-                    $this->generateQrCode($meeting);
-                }
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Rapat berhasil ditambahkan.'
-                ]);
+            if ($request->input('generate_qr', false)) {
+                $this->generateQrCode($activity);
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Kegiatan/Rapat berhasil ditambahkan.'
+            ]);
+            
         } catch (\Exception $e) {
             Log::error('Error store attendance: ' . $e->getMessage());
             return response()->json([
@@ -147,7 +149,7 @@ class AttendanceController extends Controller
     public function edit($id, $type)
     {
         try {
-            $model = $type === 'activity' ? Activity::with('qrCode')->findOrFail($id) : Meeting::with('qrCode')->findOrFail($id);
+            $model = Activity::with('qrCode')->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $model
@@ -178,7 +180,7 @@ class AttendanceController extends Controller
         
 
         try {
-            $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
+            $model = Activity::with('qrCode')->findOrFail($id);
             
             $eventDate = $validated['event_date'] ?? ($type === 'activity' ? $model->start_time->format('Y-m-d') : $model->meeting_date->format('Y-m-d'));
             $startTime = $validated['start_time'] ?? ($type === 'activity' ? $model->start_time->format('H:i') : $model->start_time->format('H:i'));
@@ -261,7 +263,7 @@ class AttendanceController extends Controller
     public function destroy($id, $type)
     {
         try {
-            $model = $type === 'activity' ? Activity::findOrFail($id) : Meeting::findOrFail($id);
+            $model = Activity::with('qrCode')->findOrFail($id);
             $model->delete();
 
             return response()->json([
@@ -282,15 +284,7 @@ class AttendanceController extends Controller
     public function showQrCode(Request $request, $id)
     {
         try {
-            $type = $request->query('type', $request->input('type', 'activity')); // Default ke activity jika tidak ada
-
-            if ($type === 'meeting') {
-                $model = Meeting::with('qrCode')->findOrFail($id);
-            } else {
-                $model = Activity::with('qrCode')->findOrFail($id);
-            }
-
-            Log::info('Showing QR code for: ' . get_class($model) . ' ID: ' . $id . ', End time: ' . ($model->end_time ? $model->end_time->toDateTimeString() : 'null'));
+            $model = Activity::with('qrCode')->findOrFail($id);
 
             if (!$model->qrCode) {
                 return response()->json([
@@ -324,7 +318,7 @@ class AttendanceController extends Controller
     public function regenerateQrCode($id)
     {
         try {
-            $model = Activity::find($id) ?? Meeting::findOrFail($id);
+            $model = Activity::find($id);
             
             if ($model->qrCode) {
                 if ($model->qrCode->file_path && Storage::exists('public/' . $model->qrCode->file_path)) {
@@ -377,11 +371,8 @@ class AttendanceController extends Controller
                 'created_by' => auth()->id(),
             ];
 
-            if ($model instanceof Activity) {
-                $qrCodeData['activity_id'] = $model->id;
-            } elseif ($model instanceof Meeting) {
-                $qrCodeData['meeting_id'] = $model->id;
-            }
+            $qrCodeData['activity_id'] = $model->id;
+            
 
             $qrCode = QrCode::create($code)
                 ->setSize(300)

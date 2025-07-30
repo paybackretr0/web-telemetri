@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('qr_codes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('activity_id')->nullable()->constrained()->cascadeOnDelete();
-            $table->foreignId('meeting_id')->nullable()->constrained()->cascadeOnDelete();
             $table->string('code')->unique();
             $table->string('file_path')->nullable();
             $table->enum('type', ['activity', 'duty', 'meeting'])->default('activity');

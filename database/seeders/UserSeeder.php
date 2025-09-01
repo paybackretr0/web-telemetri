@@ -31,6 +31,19 @@ class UserSeeder extends Seeder
                 'created_at' => '2025-05-17 09:01:26',
                 'updated_at' => '2025-07-30 04:01:41',
             ],
+            [
+                'id' => 2,
+                'name' => 'Khalied Nauly Maturino',
+                'email' => 'khalidmaturino@gmail.com',
+                'password' => Hash::make('password123'),
+                'google_id' => null,
+                'google_token' => null,
+                'role' => 'pengurus',
+                'jabatan' => 'Koordinator OC',
+                'divisi' => 'Organizing Committee',
+                'created_at' => '2025-05-17 09:01:26',
+                'updated_at' => '2025-07-30 04:01:41',
+            ],
         ]);
     }
 }

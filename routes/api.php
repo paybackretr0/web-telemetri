@@ -26,6 +26,7 @@ use App\Http\Controllers\API\HistoryController;
 */
 
 Route::post('/auth/google-flutter', [AuthController::class, 'googleLogin']);
+Route::post('/auth/login-email', [AuthController::class, 'loginEmail']);
 Route::post('/auth/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
 Route::post('/refresh-google-token', [AuthController::class, 'refreshGoogleToken'])->middleware('auth:sanctum');

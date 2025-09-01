@@ -99,6 +99,49 @@ class AuthController extends Controller
             ], 401);
         }
     }
+
+    /**
+     * Authenticate user using Email and Password from mobile app
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+
+    public function loginEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+            'device_token' => 'nullable|string', // tambahkan jika ingin device_token
+        ]);
+
+        $credentials = $request->only('email', 'password');
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+
+            // Simpan device_token jika ada
+            if ($request->filled('device_token')) {
+                $user->device_token = $request->device_token;
+                $user->save();
+            }
+
+            $token = $user->createToken('auth_token')->plainTextToken;
+
+            return response()->json([
+                'message' => 'Login successful',
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Login failed',
+            'error' => 'Invalid email or password'
+        ], 401);
+    }
+
     /**
      * Logout user (Revoke the token)
      *

@@ -2,10 +2,14 @@ services:
     telemetri-frankenphp:
         build:
             context: .
-        entrypoint: php artisan octane:frankenphp
         container_name: telemetri-frankenphp
+        env_file:
+            - .env
         ports:
             - "8080:8000"
+        volumes:
+            - .:/app
+        command: frankenphp php-server artisan octane:start
         networks:
             - laravel_network
 

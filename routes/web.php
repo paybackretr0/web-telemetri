@@ -22,9 +22,13 @@ use App\Http\Controllers\Admin\QrDutyController;
 |
 */
 
+Route::get('ingfo', function () {
+    dd(phpinfo());
+});
+
 // Guest routes
 Route::get('/', function () {
-    return view('welcome');
+    return view('auth.login');
 });
 
 // Authentication routes
